@@ -79,18 +79,31 @@ Write-Host ""
 Write-Host "Configuration" -ForegroundColor Blue
 Write-Host ""
 
-$DefaultTemplate = "$env:USERPROFILE\OneDrive - Adobe\Lite DX Business Plan Template - Arpit.pptx"
 Write-Host "  Enter the full path to your Lite DX Business Plan Template .pptx file."
 Write-Host "  (Your personal copy synced from OneDrive.)"
 Write-Host ""
 
-if (Test-Path $DefaultTemplate) {
-    Write-Host "  Detected: $DefaultTemplate" -ForegroundColor Cyan
+# Search common OneDrive locations for any "Lite DX Business Plan Template*.pptx"
+$DetectedTemplate = $null
+$SearchDirs = @(
+    "$env:USERPROFILE\OneDrive - Adobe",
+    "$env:USERPROFILE\OneDrive",
+    "$env:USERPROFILE\Documents"
+)
+foreach ($dir in $SearchDirs) {
+    if (Test-Path $dir) {
+        $match = Get-ChildItem -Path $dir -Filter "Lite DX Business Plan Template*.pptx" -Recurse -Depth 2 -ErrorAction SilentlyContinue | Select-Object -First 1
+        if ($match) { $DetectedTemplate = $match.FullName; break }
+    }
+}
+
+if ($DetectedTemplate) {
+    Write-Host "  Detected: $DetectedTemplate" -ForegroundColor Cyan
     $UseDetected = Read-Host "  Use this path? [Y/n]"
     if ($UseDetected -match "^[Nn]$") {
         $TemplatePath = Read-Host "  Template path"
     } else {
-        $TemplatePath = $DefaultTemplate
+        $TemplatePath = $DetectedTemplate
     }
 } else {
     $TemplatePath = Read-Host "  Template path"

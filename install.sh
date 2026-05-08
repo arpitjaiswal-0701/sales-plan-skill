@@ -90,19 +90,26 @@ echo ""
 echo -e "${BLUE}Configuration${NC}"
 echo ""
 
-DEFAULT_TEMPLATE_MAC="$HOME/Library/CloudStorage/OneDrive-Adobe/Lite DX Business Plan Template - Arpit.pptx"
-DEFAULT_TEMPLATE_WIN="$USERPROFILE/OneDrive - Adobe/Lite DX Business Plan Template - Arpit.pptx"
-
 echo -e "  Enter the full path to your ${CYAN}Lite DX Business Plan Template .pptx${NC} file."
 echo -e "  (This is your personal copy synced from OneDrive.)"
 echo ""
-if [ -f "$DEFAULT_TEMPLATE_MAC" ]; then
-    SUGGESTED="$DEFAULT_TEMPLATE_MAC"
-elif [ -f "$DEFAULT_TEMPLATE_WIN" ]; then
-    SUGGESTED="$DEFAULT_TEMPLATE_WIN"
-else
-    SUGGESTED=""
-fi
+
+# Search common OneDrive paths for any "Lite DX Business Plan Template*.pptx"
+SUGGESTED=""
+for search_dir in \
+    "$HOME/Library/CloudStorage/OneDrive-Adobe" \
+    "$HOME/OneDrive - Adobe" \
+    "$USERPROFILE/OneDrive - Adobe" \
+    "$HOME/OneDrive"
+do
+    if [ -d "$search_dir" ]; then
+        match=$(find "$search_dir" -maxdepth 2 -iname "Lite DX Business Plan Template*.pptx" 2>/dev/null | head -1)
+        if [ -n "$match" ]; then
+            SUGGESTED="$match"
+            break
+        fi
+    fi
+done
 
 if [ -n "$SUGGESTED" ]; then
     echo -e "  Detected: ${CYAN}${SUGGESTED}${NC}"
