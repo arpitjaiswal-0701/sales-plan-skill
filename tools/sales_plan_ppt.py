@@ -10,6 +10,7 @@ Usage:
 """
 
 import argparse
+import copy
 import json
 import re
 import shutil
@@ -47,7 +48,7 @@ def find_shape(container, name):
 
 
 def set_text(shape, text):
-    """Replace text in a shape while preserving first-run font formatting."""
+    """Rebuild text frame from scratch, preserving first-run font properties."""
     if not shape or not shape.has_text_frame:
         return
     txBody = shape.text_frame._txBody
@@ -55,34 +56,59 @@ def set_text(shape, text):
     if not paras:
         return
 
-    # Drop all paragraphs after the first
-    for para in paras[1:]:
+    # Extract rPr from first run before nuking content
+    rPr = None
+    runs = paras[0].findall(qn('a:r'))
+    if runs:
+        rPr_elem = runs[0].find(qn('a:rPr'))
+        if rPr_elem is not None:
+            rPr = copy.deepcopy(rPr_elem)
+
+    # Remove all existing paragraphs
+    for para in paras:
         txBody.remove(para)
 
-    first_para = paras[0]
-    runs = first_para.findall(qn('a:r'))
-
-    if runs:
-        for run in runs[1:]:
-            first_para.remove(run)
-        t = runs[0].find(qn('a:t'))
-        if t is None:
-            t = etree.SubElement(runs[0], qn('a:t'))
-        t.text = text
-    else:
-        r = etree.SubElement(first_para, qn('a:r'))
+    # One paragraph per line; preserves bullet newlines from content_map.json
+    for line in (text.split('\n') if text else ['']):
+        para = etree.SubElement(txBody, qn('a:p'))
+        pPr = etree.SubElement(para, qn('a:pPr'))
+        pPr.set('algn', 'l')
+        r = etree.SubElement(para, qn('a:r'))
+        if rPr is not None:
+            r.insert(0, copy.deepcopy(rPr))
         t = etree.SubElement(r, qn('a:t'))
-        t.text = text
+        t.text = line
+
+    normalize_body_props(shape)
+
+
+def normalize_body_props(shape):
+    """Set anchor=top and normAutofit; clear noAutofit/spAutoFit."""
+    if not shape or not shape.has_text_frame:
+        return
+    txBody = shape.text_frame._txBody
+    bodyPr = txBody.find(qn('a:bodyPr'))
+    if bodyPr is None:
+        return
+    bodyPr.set('anchor', 't')
+    bodyPr.attrib.pop('anchorCtr', None)
+    for tag in (qn('a:noAutofit'), qn('a:spAutoFit')):
+        for el in bodyPr.findall(tag):
+            bodyPr.remove(el)
+    if not bodyPr.findall(qn('a:normAutofit')):
+        etree.SubElement(bodyPr, qn('a:normAutofit'))
 
 
 def set_cell_text(cell, text):
-    """Set text in a table cell's text frame."""
+    """Set text in a table cell, clearing all existing paragraphs."""
     try:
         tf = cell.text_frame
+        txBody = tf._txBody
+        paras = txBody.findall(qn('a:p'))
+        for para in paras[1:]:
+            txBody.remove(para)
         if tf.paragraphs:
             tf.paragraphs[0].text = text
-        else:
-            set_text(tf, text)
     except Exception:
         pass
 
@@ -183,7 +209,15 @@ def slide_5(slide, cm):
 
 
 def slide_6(slide, cm):
-    """Org Chart — insert buying committee as a clean table."""
+    """Org Chart — remove existing org chart shapes, then insert buying committee table."""
+    # Remove all non-placeholder rectangle/textbox shapes (org chart + legend)
+    to_remove = [
+        s for s in slide.shapes
+        if not s.is_placeholder and s.shape_type in (1, 17)
+    ]
+    for s in to_remove:
+        s._element.getparent().remove(s._element)
+
     contacts = cm.get('slide_6', {}).get('buying_committee', [])
     if not contacts:
         return
