@@ -9,7 +9,12 @@ Trigger on `/sales plan <url>` to run all six `/sales` research sub-skills for a
 - User wants to run all sales research and get a populated PPT in one command
 - Refresh: user re-runs `/sales plan` on an existing deal folder to update research and regenerate the PPT
 
-Do NOT invoke for: individual sub-skills (`/sales prospect`, `/sales qualify`, etc.) run alone, pipeline reporting (`/sales report`), or outreach-only tasks.
+## When NOT to Use
+
+- Running a single sub-skill in isolation (`/sales prospect`, `/sales qualify`, `/sales contacts`, etc.)
+- Pipeline reporting or forecasting (`/sales report`, `/sales report-pdf`)
+- Outreach-only tasks where no PPT or full research is needed
+- When no company URL is provided — prospect URL is required to proceed
 
 ## Limitations
 
