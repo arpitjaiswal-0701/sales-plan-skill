@@ -23,7 +23,7 @@ echo ""
 # ---------------------------------------------------------------------------
 # Locate source files (works for both local clone and curl | bash)
 # ---------------------------------------------------------------------------
-GITHUB_REPO="YOUR_GITHUB_USERNAME/sales-plan-skill"
+GITHUB_REPO="arpitjaiswal-0701/sales-plan-skill"
 TEMP_DIR=""
 
 if [ -n "${BASH_SOURCE[0]:-}" ] && [ "${BASH_SOURCE[0]}" != "bash" ]; then

@@ -82,7 +82,7 @@ curl -fsSL https://raw.githubusercontent.com/zubair-trabzada/ai-sales-team-claud
 
 **Mac / Linux / Git Bash on Windows:**
 ```bash
-git clone https://github.com/YOUR_GITHUB_USERNAME/sales-plan-skill.git
+git clone https://github.com/arpitjaiswal-0701/sales-plan-skill.git
 cd sales-plan-skill
 chmod +x install.sh
 ./install.sh
@@ -90,7 +90,7 @@ chmod +x install.sh
 
 **Windows PowerShell:**
 ```powershell
-git clone https://github.com/YOUR_GITHUB_USERNAME/sales-plan-skill.git
+git clone https://github.com/arpitjaiswal-0701/sales-plan-skill.git
 cd sales-plan-skill
 .\install.ps1
 ```
