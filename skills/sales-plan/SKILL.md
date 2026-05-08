@@ -1,6 +1,23 @@
 # /sales plan — End-to-End Account Business Plan Generator
 
-Run all `/sales` research workflows for a target account and auto-populate the Adobe Lite DX Business Plan PowerPoint template. Outputs land in the account's deal folder — Desktop stays clear.
+Trigger on `/sales plan <url>` to run all six `/sales` research sub-skills for a target account and auto-populate the Adobe Lite DX Business Plan PowerPoint template. Use when preparing an account plan, QBR deck, or new account review. Outputs land in the account's deal folder under the configured deals root.
+
+## When to Use
+
+- User types `/sales plan <url>` — always invoke this skill
+- User asks to "build an account plan", "prep a business plan deck", or "create a QBR deck" for a named account
+- User wants to run all sales research and get a populated PPT in one command
+- Refresh: user re-runs `/sales plan` on an existing deal folder to update research and regenerate the PPT
+
+Do NOT invoke for: individual sub-skills (`/sales prospect`, `/sales qualify`, etc.) run alone, pipeline reporting (`/sales report`), or outreach-only tasks.
+
+## Limitations
+
+- Requires all 6 sub-skills installed: `sales-prospect`, `sales-qualify`, `sales-contacts`, `sales-competitors`, `sales-prep`, `sales-outreach`
+- Requires Python 3.8+ with `python-pptx` installed
+- Requires the Lite DX Business Plan Template `.pptx` synced from OneDrive
+- Research sub-skills require internet access; PPT generation does not
+- Slides 4 and 8 cannot be auto-populated without Clari/Panorama data — flag these explicitly
 
 ## Invocation syntax
 
@@ -42,6 +59,8 @@ From the output, extract:
 - **Account slug** — lowercase, hyphens only, with current year appended (e.g. "Applied Materials" → `applied-materials-2026`)
 
 The deal folder name is always `<slug>-<current-year>`. If a folder with that name already exists under the deals root, use it (this is a refresh run).
+
+If a `deal.yaml` file already exists in the deal folder root, read it first and treat its contents as confirmed facts — incorporate ARR, stage, renewal date, and products from `deal.yaml` into the `content_map.json` fields, overriding any extracted values.
 
 ---
 
@@ -215,7 +234,7 @@ Research:      content/ (6 files + content_map.json)
 
 Auto-populated:  Slides 1, 2, 3, 5, 6, 7, 9, 11
 Manual fill:     Slide 4 (Performance History — source: Panorama/Clari)
-                 Slide 8 (FY25 Opportunities — source: Clari)
+                 Slide 8 (FY Opportunities — source: Clari)
                  Slide 9 (add specific event dates)
 ```
 
@@ -228,7 +247,11 @@ If `--arr`, `--renewal`, or `--stage` were passed, remove those slides from the 
 | Scenario | Action |
 |----------|--------|
 | URL unreachable | Report to user, suggest alternate URL, stop |
-| A sub-skill agent fails | Log the failure, write `[FILL: Research unavailable — re-run /sales <skill> <url>]` for that skill's slide zones, continue |
+| `sales-qualify` fails | Write `[FILL: /sales qualify unavailable]` for slide_2.challenges, slide_3.account_intel, slide_7.path_to_value, slide_9.touchpoints — continue |
+| `sales-contacts` fails | Write `[FILL: /sales contacts unavailable]` for slide_6.buying_committee — continue |
+| `sales-competitors` fails | Write `[FILL: /sales competitors unavailable]` for slide_2.adobe_solution, slide_3.adobe_strengths, slide_7.portfolio_plays — continue |
+| `sales-prep` fails | Write `[FILL: /sales prep unavailable]` for slide_2.big_idea, slide_5.digital_priorities, slide_7.big_idea, slide_9.touchpoints — continue |
+| `sales-outreach` fails | Log failure, no slide zones affected — continue |
 | Python script fails | Print full error, diagnose root cause, attempt fix (e.g. missing python-pptx — run `pip install python-pptx`) |
 | Template file not found | Report exact path checked, ask user to confirm file exists at `__TEMPLATE_PATH__` |
 | content_map.json field exceeds budget after summarization | Truncate to budget and append `…` |
