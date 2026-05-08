@@ -214,12 +214,15 @@ Already handled — the script reconfigures stdout to UTF-8 on import. If you se
        ▼
  sales_plan_ppt.py
  → clones template
- → populates shapes by name (XML-level, preserves font/size/color)
- → slide 6: inserts clean table (buying committee)
+ → for each shape: extracts font properties, rebuilds text frame from scratch
+   (no residual template text), normalises anchor/autofit/alignment
+ → slide 6: clears org chart shapes, inserts clean buying committee table
  → saves to artifacts/
 ```
 
-The Python script requires no API key — all intelligence work happens in the Claude skill step. The script is purely mechanical: read JSON, find shape by name, replace text.
+The Python script requires no API key — all intelligence work happens in the Claude skill step. The script is purely mechanical: read JSON, locate shapes by name, rebuild text frames.
+
+See [CHANGELOG.md](CHANGELOG.md) for version history.
 
 ---
 
