@@ -99,13 +99,14 @@ Wait for all 5 agents to complete before proceeding.
 
 ## Step 5 — Build content_map.json
 
-Read all 6 markdown files from `content/`. For each field below, extract the relevant section and compress it to fit the character budget. **Output only the compressed text — no markdown syntax, no bullet prefixes unless explicitly noted, no preamble.**
+Read all 6 markdown files from `content/`. For each field below, extract the relevant section and distil it to fit the character budget. **Output only the distilled text — no markdown syntax, no bullet prefixes unless explicitly noted, no preamble.**
 
-Apply these rules when compressing:
-- Keep named people, specific numbers, competitor names, and concrete facts
-- Remove filler phrases ("it is important to note", "additionally", "in conclusion")
-- Use sentence fragments if needed to hit the budget
-- For bullet lists: use `•` as prefix, one item per line
+Apply these rules when distilling:
+- Preserve complete sentences and specific detail; the PPT shapes use normAutofit so space is not a hard constraint
+- Keep named people, specific numbers, dollar amounts, competitor names, dates, and concrete facts — these are the most valuable signals
+- Remove filler phrases ("it is important to note", "additionally", "in conclusion", "it is worth mentioning")
+- Truncate only when the field genuinely exceeds the budget after removing filler — never truncate to hit the budget artificially
+- For bullet lists: use `•` as prefix, one item per line; include all substantive bullets up to the stated count
 
 ### content_map.json schema
 
@@ -115,19 +116,19 @@ Apply these rules when compressing:
   "date": "<YYYY-MM-DD today>",
 
   "slide_2": {
-    "business_issue":    "<core business problem 1-2 sentences, 300 chars max>",
-    "big_idea":          "<value statement from top talking point, 200 chars max>",
-    "company_objectives":"<3-4 strategic objectives as bullet list, 300 chars max>",
-    "challenges":        "<top 3-4 challenges as bullet list, 300 chars max>",
-    "adobe_solution":    "<Adobe differentiated solution positioning, 300 chars max>"
+    "business_issue":    "<core business problem 2-3 sentences, 600 chars max>",
+    "big_idea":          "<value statement from top talking point, 400 chars max>",
+    "company_objectives":"<4-6 strategic objectives as bullet list, 600 chars max>",
+    "challenges":        "<top 4-6 challenges as bullet list, 600 chars max>",
+    "adobe_solution":    "<Adobe differentiated solution positioning, 600 chars max>"
   },
 
   "slide_3": {
-    "account_background":    "<Revenue · Employees · Business Focus · Industry · HQ — 3-4 lines, 400 chars max>",
-    "account_background_lob":"<secondary division or LOB overview, or repeat account_background, 350 chars max>",
-    "account_intel":         "<why this account, whitespace opportunity, Tier 1 rationale, 350 chars max>",
-    "adobe_strengths":       "<Adobe advantages specific to this account, 3 bullets, 300 chars max>",
-    "opportunities":         "<specific opportunity areas to create value, 3 bullets, 300 chars max>"
+    "account_background":    "<Revenue · Employees · Business Focus · Industry · HQ — 4-6 lines, 700 chars max>",
+    "account_background_lob":"<secondary division or LOB overview, or repeat account_background, 600 chars max>",
+    "account_intel":         "<why this account, whitespace opportunity, Tier 1 rationale, 600 chars max>",
+    "adobe_strengths":       "<Adobe advantages specific to this account, 5 bullets, 600 chars max>",
+    "opportunities":         "<specific opportunity areas to create value, 5 bullets, 600 chars max>"
   },
 
   "slide_4": {
@@ -136,13 +137,13 @@ Apply these rules when compressing:
   },
 
   "slide_5": {
-    "market_trends":          "<broad industry/market developments, 3-4 bullets, 400 chars max>",
-    "company_goals":          "<strategic goals, 3-4 bullets, 300 chars max>",
-    "digital_priorities":     "<digital and technology priorities, 3-4 bullets, 300 chars max>",
-    "market_opportunities":   "<specific value/growth opportunity areas, 3 bullets, 300 chars max>",
-    "customer_challenges":    "<key obstacles in customer's own language, 3 bullets, 300 chars max>",
-    "partner_strategy":       "<partner ecosystem and relationships, 2-3 bullets, 200 chars max>",
-    "implementation_partners":"<known implementation/consulting partners, 200 chars max>"
+    "market_trends":          "<broad industry/market developments, 5-6 bullets, 800 chars max>",
+    "company_goals":          "<strategic goals, 5-6 bullets, 600 chars max>",
+    "digital_priorities":     "<digital and technology priorities, 5-6 bullets, 600 chars max>",
+    "market_opportunities":   "<specific value/growth opportunity areas, 5 bullets, 600 chars max>",
+    "customer_challenges":    "<key obstacles in customer's own language, 5 bullets, 600 chars max>",
+    "partner_strategy":       "<partner ecosystem and relationships, 3-4 bullets, 400 chars max>",
+    "implementation_partners":"<known implementation/consulting partners, 400 chars max>"
   },
 
   "slide_6": {
@@ -153,11 +154,11 @@ Apply these rules when compressing:
   },
 
   "slide_7": {
-    "big_idea":       "<big idea in customer language, 2-3 sentences, 350 chars max>",
-    "tagline":        "<one powerful sentence capturing the opportunity, 150 chars max>",
-    "business_issue": "<business issue impacting performance and goals, 300 chars max>",
-    "portfolio_plays":"<Adobe portfolio/sales plays to pitch with alignment rationale, 300 chars max>",
-    "path_to_value":  "<path to value and budget alignment; include pipeline estimate if known, 300 chars max>"
+    "big_idea":       "<big idea in customer language, 3-4 sentences, 650 chars max>",
+    "tagline":        "<one powerful sentence capturing the opportunity, 250 chars max>",
+    "business_issue": "<business issue impacting performance and goals, 600 chars max>",
+    "portfolio_plays":"<Adobe portfolio/sales plays to pitch with alignment rationale, 600 chars max>",
+    "path_to_value":  "<path to value and budget alignment; include pipeline estimate if known, 600 chars max>"
   },
 
   "slide_8": {
@@ -165,17 +166,17 @@ Apply these rules when compressing:
   },
 
   "slide_9": {
-    "touchpoints_h1": "<key touchpoints Dec–Jul — events, renewal meetings, CEC; include --renewal and --close-date if provided; 250 chars max>",
-    "touchpoints_h2": "<key touchpoints Aug–Nov — MAX, renewal close, EBC; 250 chars max>"
+    "touchpoints_h1": "<key touchpoints Dec–Jul — events, renewal meetings, CEC; include --renewal and --close-date if provided; 500 chars max>",
+    "touchpoints_h2": "<key touchpoints Aug–Nov — MAX, renewal close, EBC; 500 chars max>"
   },
 
   "slide_11": {
-    "goals":            "<company transformational goals, 1-2 sentences, 200 chars max>",
-    "challenges":       "<selected customer challenges, 1-2 sentences, 200 chars max>",
-    "initiatives":      "<company priorities and how Adobe aligns, 1-2 sentences, 200 chars max>",
-    "impact":           "<digital initiatives and expected Adobe impact, 1-2 sentences, 200 chars max>",
-    "big_idea_paragraph":"<full Big Idea paragraph in customer language, 500 chars max>",
-    "tagline":           "<tagline, 100 chars max>"
+    "goals":            "<company transformational goals, 2-3 sentences, 400 chars max>",
+    "challenges":       "<selected customer challenges, 2-3 sentences, 400 chars max>",
+    "initiatives":      "<company priorities and how Adobe aligns, 2-3 sentences, 400 chars max>",
+    "impact":           "<digital initiatives and expected Adobe impact, 2-3 sentences, 400 chars max>",
+    "big_idea_paragraph":"<full Big Idea paragraph in customer language, 900 chars max>",
+    "tagline":           "<tagline, 200 chars max>"
   }
 }
 ```
