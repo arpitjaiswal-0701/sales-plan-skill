@@ -99,7 +99,7 @@ Wait for all 5 agents to complete before proceeding.
 
 ## Step 5 — Build content_map.json
 
-Read all 6 markdown files from `content/`. For each field below, extract the relevant section and distil it to fit the character budget. **Output only the distilled text — no markdown syntax, no bullet prefixes unless explicitly noted, no preamble.**
+Read all 6 markdown files from `content/`. For each field below, extract and synthesize content through the lens of **where Adobe (primarily Adobe Learning Manager / ALM, and the broader Adobe DX portfolio) creates value for this specific account**. Do not summarize research neutrally — extract and frame content as it would be used in a live customer conversation or executive briefing. Every field should read as if an experienced AE wrote it, not as a research summary.
 
 Apply these rules when distilling:
 - Preserve complete sentences and specific detail; the PPT shapes use normAutofit so space is not a hard constraint
@@ -107,6 +107,7 @@ Apply these rules when distilling:
 - Remove filler phrases ("it is important to note", "additionally", "in conclusion", "it is worth mentioning")
 - Truncate only when the field genuinely exceeds the budget after removing filler — never truncate to hit the budget artificially
 - For bullet lists: use `•` as prefix, one item per line; include all substantive bullets up to the stated count
+- For fields without a clear match in the source, synthesize from the closest available content — never leave a field blank or write [FILL] unless the schema explicitly says to
 
 ### content_map.json schema
 
@@ -116,19 +117,19 @@ Apply these rules when distilling:
   "date": "<YYYY-MM-DD today>",
 
   "slide_2": {
-    "business_issue":    "<core business problem 2-3 sentences, 600 chars max>",
-    "big_idea":          "<value statement from top talking point, 400 chars max>",
-    "company_objectives":"<4-6 strategic objectives as bullet list, 600 chars max>",
-    "challenges":        "<top 4-6 challenges as bullet list, 600 chars max>",
-    "adobe_solution":    "<Adobe differentiated solution positioning, 600 chars max>"
+    "business_issue":    "<The primary business challenge creating urgency to buy. Frame from the economic buyer's perspective — specific, quantified where possible, tied to business outcomes. Do NOT mention Adobe. 2-3 sentences, 600 chars max>",
+    "big_idea":          "<The single strongest reason this account should partner with Adobe — in customer language, connecting their business goals to Adobe's capabilities. One powerful assertion, not a feature list. 400 chars max>",
+    "company_objectives":"<Strategic objectives where Adobe DX / ALM can accelerate progress — prioritize objectives tied to workforce development, digital skills, content operations, or employee experience. Include objective name + brief context. 4-6 bullets, 600 chars max>",
+    "challenges":        "<Top challenges Adobe can directly address — prioritize talent development gaps, L&D technology debt, skills deficits, compliance training needs. Use the account's own language where available. 4-6 bullets, 600 chars max>",
+    "adobe_solution":    "<How Adobe's portfolio (ALM, Experience Cloud, Marketo) directly addresses the identified challenges. Name specific products and the capability that maps to each pain point. Include competitive differentiators vs. known incumbent. 600 chars max>"
   },
 
   "slide_3": {
-    "account_background":    "<Revenue · Employees · Business Focus · Industry · HQ — 4-6 lines, 700 chars max>",
-    "account_background_lob":"<secondary division or LOB overview, or repeat account_background, 600 chars max>",
-    "account_intel":         "<why this account, whitespace opportunity, Tier 1 rationale, 600 chars max>",
-    "adobe_strengths":       "<Adobe advantages specific to this account, 5 bullets, 600 chars max>",
-    "opportunities":         "<specific opportunity areas to create value, 5 bullets, 600 chars max>"
+    "account_background":    "<Factual company snapshot as labeled lines — Revenue · Employees · Industry · HQ · Business Model. Use exact numbers. 4-6 lines, 700 chars max>",
+    "account_background_lob":"<The specific division, line of business, or workforce segment most relevant to an ALM or Adobe DX sale — e.g., HR/L&D org, IT, Marketing COE, or a major global business unit. If not identified, repeat account_background. 600 chars max>",
+    "account_intel":         "<Sales rationale for pursuing this account now — whitespace (what Adobe doesn't have yet), trigger events (leadership change, transformation initiative, contract event), and account tier/priority rationale. Be specific. 600 chars max>",
+    "adobe_strengths":       "<Adobe's specific advantages for winning at this account — tailored to their industry, tech stack, and known pain points. Include proof points (customer references in same industry, specific ALM capabilities they need). Not generic Adobe strengths. 5 bullets, 600 chars max>",
+    "opportunities":         "<Specific Adobe product plays and expansion opportunities. Each bullet should name the product, the use case, and the business impact — e.g., '• ALM — replace legacy LMS for global manufacturing workforce, 15k+ learners'. 5 bullets, 600 chars max>"
   },
 
   "slide_4": {
@@ -137,13 +138,13 @@ Apply these rules when distilling:
   },
 
   "slide_5": {
-    "market_trends":          "<broad industry/market developments, 5-6 bullets, 800 chars max>",
-    "company_goals":          "<strategic goals, 5-6 bullets, 600 chars max>",
-    "digital_priorities":     "<digital and technology priorities, 5-6 bullets, 600 chars max>",
-    "market_opportunities":   "<specific value/growth opportunity areas, 5 bullets, 600 chars max>",
-    "customer_challenges":    "<key obstacles in customer's own language, 5 bullets, 600 chars max>",
-    "partner_strategy":       "<partner ecosystem and relationships, 3-4 bullets, 400 chars max>",
-    "implementation_partners":"<known implementation/consulting partners, 400 chars max>"
+    "market_trends":          "<Industry-level trends creating tailwinds for Adobe's solutions — AI in L&D, skills-based organizations, digital workforce transformation, compliance mandates. Each bullet = trend + why it matters for this account specifically. 5-6 bullets, 800 chars max>",
+    "company_goals":          "<This account's stated strategic goals for the current fiscal year — from earnings calls, investor presentations, or public announcements. Prioritize goals where Adobe can demonstrate measurable impact. 5-6 bullets, 600 chars max>",
+    "digital_priorities":     "<Specific digital and technology initiatives this account is investing in — systems being modernized, platforms being evaluated, transformation programs underway. Flag any where Adobe competes or complements. 5-6 bullets, 600 chars max>",
+    "market_opportunities":   "<White-space and expansion opportunities Adobe can capture — untapped business units, geographies, or use cases not currently served by Adobe. Anchor each to a specific Adobe product and estimated impact. 5 bullets, 600 chars max>",
+    "customer_challenges":    "<Obstacles this account faces in their own words — from earnings calls, press releases, job postings, or analyst coverage. Frame as pain statements an economic buyer would recognize, not symptoms. 5 bullets, 600 chars max>",
+    "partner_strategy":       "<Known SI, consulting, or technology partners this account works with. Flag Adobe partners (Accenture, Deloitte, Infosys) vs. competitive partners. Include partner name and engagement context. 3-4 bullets, 400 chars max>",
+    "implementation_partners":"<Specific consulting/SI firms engaged at this account for relevant projects (HCM, L&D, digital transformation). Include partner name and engagement context. 400 chars max>"
   },
 
   "slide_6": {
@@ -154,11 +155,11 @@ Apply these rules when distilling:
   },
 
   "slide_7": {
-    "big_idea":       "<big idea in customer language, 3-4 sentences, 650 chars max>",
-    "tagline":        "<one powerful sentence capturing the opportunity, 250 chars max>",
-    "business_issue": "<business issue impacting performance and goals, 600 chars max>",
-    "portfolio_plays":"<Adobe portfolio/sales plays to pitch with alignment rationale, 600 chars max>",
-    "path_to_value":  "<path to value and budget alignment; include pipeline estimate if known, 600 chars max>"
+    "big_idea":       "<The central value thesis — 3-4 sentences connecting this account's most urgent business challenge to Adobe's differentiated solution, with a clear outcome statement. Written in language the economic buyer would use, not product marketing language. 650 chars max>",
+    "tagline":        "<A single memorable sentence capturing the opportunity — sharp enough to be a meeting title or email subject line. 250 chars max>",
+    "business_issue": "<The specific business issue driving urgency for a decision — quantified impact, named stakeholders affected, timeline pressure if known. This is the 'so what' that justifies executive attention. 600 chars max>",
+    "portfolio_plays":"<The specific Adobe products/plays to lead with and why — mapped to the identified business issue. Include the sales motion (new logo, upsell, competitive displacement) and the proof point or use case to anchor the pitch. 600 chars max>",
+    "path_to_value":  "<How Adobe delivers ROI for this account — include budget indicators, decision timeline, potential ARR, and the first value milestone (quick win). Connect to the economic buyer's success metrics. 600 chars max>"
   },
 
   "slide_8": {
@@ -166,17 +167,17 @@ Apply these rules when distilling:
   },
 
   "slide_9": {
-    "touchpoints_h1": "<key touchpoints Dec–Jul — events, renewal meetings, CEC; include --renewal and --close-date if provided; 500 chars max>",
-    "touchpoints_h2": "<key touchpoints Aug–Nov — MAX, renewal close, EBC; 500 chars max>"
+    "touchpoints_h1": "<Key planned touchpoints Dec–Jul — customer events, renewal milestones, QBR cadence, Adobe CEC or Summit attendance, POC kick-offs. Include specific months where known. If --renewal or --close-date were passed, anchor them here. 500 chars max>",
+    "touchpoints_h2": "<Key planned touchpoints Aug–Nov — contract events, renewal close, EBC, MAX, executive briefing. Include months and owners where known. 500 chars max>"
   },
 
   "slide_11": {
-    "goals":            "<company transformational goals, 2-3 sentences, 400 chars max>",
-    "challenges":       "<selected customer challenges, 2-3 sentences, 400 chars max>",
-    "initiatives":      "<company priorities and how Adobe aligns, 2-3 sentences, 400 chars max>",
-    "impact":           "<digital initiatives and expected Adobe impact, 2-3 sentences, 400 chars max>",
-    "big_idea_paragraph":"<full Big Idea paragraph in customer language, 900 chars max>",
-    "tagline":           "<tagline, 200 chars max>"
+    "goals":            "<The 2-3 most important company goals where Adobe creates measurable impact. Written as assertions, not list items. 2-3 sentences, 400 chars max>",
+    "challenges":       "<The 2-3 most acute challenges this account faces that Adobe directly addresses. Use the account's own language. 2-3 sentences, 400 chars max>",
+    "initiatives":      "<The 2-3 strategic initiatives underway where Adobe should be positioned as a key enabler — include the initiative name and Adobe's specific role. 2-3 sentences, 400 chars max>",
+    "impact":           "<Concrete business outcomes Adobe drives for this account — quantified where possible (e.g., 'reduce time-to-competency by 40%', 'unify 50k learners on a single platform'). 2-3 sentences, 400 chars max>",
+    "big_idea_paragraph":"<A fully written Big Idea paragraph for exec communications — combines goals, challenges, Adobe solution, and expected outcome into a cohesive narrative. Written in customer-facing language as if an AE is speaking to the CFO or CHRO. 900 chars max>",
+    "tagline":           "<The sharpest possible single-sentence summary of why Adobe and this account should partner. Can be used as a meeting opener. 200 chars max>"
   }
 }
 ```
