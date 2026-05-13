@@ -11,6 +11,81 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
+## [1.2.0] — 2026-05-13
+
+### Fixed
+
+- **Slide 6 org chart still visible** (`slide_6`): The v1.1.0 pre-clear only
+  removed `AUTO_SHAPE` (type 1) and `TEXT_BOX` (type 17) shapes, leaving all
+  `GROUP` (type 6), `PICTURE` (type 13), and `LINE` (type 9) shapes — which
+  comprise the bulk of the org chart diagram, connector lines, photo ovals,
+  and legend elements. The pre-clear now removes **all** non-placeholder
+  shapes, completely clearing the slide before table insertion.
+
+- **Slide 2 table cells not populating** (`set_cell_text`): The prior
+  high-level `tf.paragraphs[0].text = text` API silently fails on merge-anchor
+  cells and cells with protected run structure. Rewrote using the same
+  XML-level txBody rebuild as `set_text`: all `<a:p>` elements removed and
+  rebuilt from scratch with preserved `<a:rPr>` formatting.
+
+- **Table rows expanding and distorting slide** (`set_cell_text`): Table cells
+  lacked `<a:normAutofit>` on their `<a:bodyPr>`, allowing rows to auto-expand
+  when content exceeded the design height. `set_cell_text` now applies the
+  same `normalize_body_props` logic (top anchor, normAutofit) to each table
+  cell's text body.
+
+- **Slide 7 content missing** (`slide_7`): `Rectangle 63` (Like
+  Customers/Customer Reference, nested two levels deep in Group 218 → Group
+  60) was not included in the target map. Added with the new `like_customers`
+  field from `content_map.json`.
+
+- **Slide 9 content overflowing single cell** (`slide_9`): All H1 and H2
+  touchpoints were written to a single cell (December / August), causing
+  overflow and leaving 7 of 8 month columns blank. Rewrote to distribute
+  content across individual month columns using the new `h1`/`h2` nested
+  object schema. Legacy flat `touchpoints_h1`/`touchpoints_h2` strings remain
+  supported for backward compatibility.
+
+### Added
+
+- **Slide 1 DALP title format** (`slide_1`): Title placeholder now reads
+  "{Company Name} — DALP Account Plan" instead of the bare company name.
+
+- **Slide 1 company logo** (`slide_1`, `fetch_logo`): New `fetch_logo(domain,
+  output_dir)` function downloads the company logo from the Clearbit Logo API
+  (`logo.clearbit.com/{domain}`) and inserts it into the lower-right corner of
+  Slide 1 (10.43", 5.60", 2.5" × 1.5"). Cached to `logo_cache.png` in the
+  output directory on first run. Silently no-ops on network failure — the
+  DALP title is still set.
+
+- **Slide 6 Reason for Engagement column**: Buying committee table expanded
+  from 4 columns to 5: Name (2.0"), Title (2.5"), Role (1.8"), **Reason for
+  Engagement** (4.2"), Attitude toward Adobe (2.0"). Requires `reason` key in
+  each `buying_committee` object in `content_map.json`.
+
+- **`ctx` parameter**: All slide populator functions now accept an optional
+  `ctx: Dict` argument containing `output_dir` and any future per-run context.
+  The `main()` function constructs `ctx` and passes it to every populator,
+  replacing the prior zero-argument dispatch.
+
+- `import urllib.request` for logo download (stdlib, no new dependency).
+
+### Changed
+
+- `SKILL.md` schema updated:
+  - Added `company_domain` top-level field (used by `fetch_logo`).
+  - `slide_3.account_background` and `slide_3.account_background_lob` now
+    specify the exact 10-line labeled format matching the template's structured
+    placeholder text (Annual Revenue, Online Revenue, Size, etc.).
+  - `slide_6.buying_committee` objects now include a `reason` field.
+  - `slide_7` adds `like_customers` field (maps to `Rectangle 63`).
+  - `slide_9` schema changed from flat `touchpoints_h1`/`touchpoints_h2`
+    strings to nested `h1`/`h2` objects with monthly keys (`december` through
+    `july` for H1; `august` through `november` for H2).
+  - Source mapping table updated to reflect all new fields.
+
+---
+
 ## [1.1.0] — 2026-05-08
 
 ### Fixed
@@ -96,6 +171,7 @@ Versioning follows [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ---
 
-[Unreleased]: https://github.com/arpitjaiswal-0701/sales-plan-skill/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/arpitjaiswal-0701/sales-plan-skill/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/arpitjaiswal-0701/sales-plan-skill/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/arpitjaiswal-0701/sales-plan-skill/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/arpitjaiswal-0701/sales-plan-skill/releases/tag/v1.0.0

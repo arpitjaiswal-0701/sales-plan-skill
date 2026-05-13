@@ -8,32 +8,33 @@ purely mechanical: read JSON, locate shapes by name, rebuild text frames.
 
 Usage::
 
-    python sales_plan_ppt.py \\
-        --content-map  "/path/to/deals/company/content/content_map.json" \\
-        --template     "/path/to/Lite DX Business Plan Template.pptx" \\
-        --output       "/path/to/deals/company/artifacts"
+    py -3 sales_plan_ppt.py \\
+        --content-map  "C:/Users/arjaiswa/Desktop/claude-workspace/deals/company/content/content_map.json" \\
+        --template     "C:/Users/arjaiswa/OneDrive - Adobe/Lite DX Business Plan Template - Arpit.pptx" \\
+        --output       "C:/Users/arjaiswa/Desktop/claude-workspace/deals/company/artifacts"
 
 Dependencies:
     python-pptx >= 0.6.23
     lxml >= 4.0
 
 Slides populated (shape-name lookup unless noted):
-    1   Company name title
+    1   Company name title ("Company — DALP Account Plan") + company logo
     2   Executive summary table — business issue, big idea, objectives,
         challenges, Adobe differentiated solution
-    3   Company overview — background, LOB, account intel, Adobe strengths,
-        opportunities
+    3   Company overview — background (structured 10-line format), LOB,
+        account intel, Adobe strengths, opportunities
     4   Performance history — upcoming renewals, renewal strategy
         (from CLI args or Clari/Panorama; [FILL] placeholder otherwise)
     5   Market landscape — trends, goals, digital priorities, opportunities,
         challenges, partner strategy, implementation partners
-    6   Buying committee table — org chart shapes cleared first; fresh table
-        inserted with Adobe red header row (up to 10 contacts)
+    6   Buying committee table — ALL non-placeholder shapes cleared first;
+        fresh 5-col table inserted (Name, Title, Role, Reason, Attitude)
     7   Value strategy — big idea, tagline, business issue, portfolio plays,
-        path to value
+        path to value, like customers
     8   FY opportunities — pipeline summary
         (from CLI args or Clari; [FILL] placeholder otherwise)
-    9   FY timeline — H1 (Dec–Jul) and H2 (Aug–Nov) touchpoints (table rows)
+    9   FY timeline — monthly touchpoints distributed across H1 (Dec–Jul)
+        and H2 (Aug–Nov) columns; backward-compatible with flat text format
     11  Big Idea appendix — goals, challenges, initiatives, impact rows,
         full Big Idea paragraph, tagline
 
@@ -44,8 +45,8 @@ Notes:
     - Shape names are matched exactly (case-sensitive). Run the shape
       inspector snippet in README.md if slides appear blank after population.
 
-Version: 1.1.0
-Changelog: CHANGELOG.md
+Version: 1.2.0
+Changelog: https://github.com/arpitjaiswal-0701/sales-plan-skill/blob/master/CHANGELOG.md
 """
 
 import argparse
@@ -54,6 +55,7 @@ import json
 import re
 import shutil
 import sys
+import urllib.request
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -69,9 +71,9 @@ from pptx.oxml.ns import qn
 from lxml import etree
 
 
-__version__ = "1.1.0"
+__version__ = "1.2.0"
 
-TEMPLATE_DEFAULT = "__TEMPLATE_PATH__"
+TEMPLATE_DEFAULT = r"C:\Users\arjaiswa\OneDrive - Adobe\Lite DX Business Plan Template - Arpit.pptx"
 
 
 # ── Shape helpers ─────────────────────────────────────────────────────────────
@@ -190,12 +192,12 @@ def normalize_body_props(shape: Any) -> None:
 
 
 def set_cell_text(cell: Any, text: str) -> None:
-    """Write text into a table cell, clearing all existing paragraphs first.
+    """Write text into a table cell using XML-level rebuild with normAutofit.
 
-    Removes extra paragraphs that carry residual template content before
-    delegating to the python-pptx high-level API for the first paragraph.
-    Silently suppresses exceptions so a single bad cell does not abort the
-    enclosing slide population.
+    Fully rebuilds all ``<a:p>`` elements inside the cell's ``<a:txBody>``,
+    preserving the first run's ``<a:rPr>`` formatting. Applies ``normAutofit``
+    and top-anchor to the cell's ``<a:bodyPr>`` to prevent row-height
+    expansion and text clipping. Supports ``\\n``-delimited multi-line text.
 
     Args:
         cell: A python-pptx table cell object.
@@ -204,11 +206,42 @@ def set_cell_text(cell: Any, text: str) -> None:
     try:
         tf = cell.text_frame
         txBody = tf._txBody
-        paras = txBody.findall(qn('a:p'))
-        for para in paras[1:]:
+
+        # Preserve run formatting from first existing paragraph
+        rPr: Optional[Any] = None
+        existing_paras = txBody.findall(qn('a:p'))
+        if existing_paras:
+            runs = existing_paras[0].findall(qn('a:r'))
+            if runs:
+                rPr_elem = runs[0].find(qn('a:rPr'))
+                if rPr_elem is not None:
+                    rPr = copy.deepcopy(rPr_elem)
+
+        # Remove all existing paragraphs
+        for para in existing_paras:
             txBody.remove(para)
-        if tf.paragraphs:
-            tf.paragraphs[0].text = text
+
+        # Rebuild one paragraph per line
+        for line in (text.split('\n') if text else ['']):
+            para = etree.SubElement(txBody, qn('a:p'))
+            pPr = etree.SubElement(para, qn('a:pPr'))
+            pPr.set('algn', 'l')
+            r = etree.SubElement(para, qn('a:r'))
+            if rPr is not None:
+                r.insert(0, copy.deepcopy(rPr))
+            t = etree.SubElement(r, qn('a:t'))
+            t.text = line
+
+        # Prevent row-height expansion by using normAutofit on the cell body
+        bodyPr = txBody.find(qn('a:bodyPr'))
+        if bodyPr is not None:
+            bodyPr.set('anchor', 't')
+            bodyPr.attrib.pop('anchorCtr', None)
+            for tag in (qn('a:noAutofit'), qn('a:spAutoFit')):
+                for el in bodyPr.findall(tag):
+                    bodyPr.remove(el)
+            if not bodyPr.findall(qn('a:normAutofit')):
+                etree.SubElement(bodyPr, qn('a:normAutofit'))
     except Exception:
         pass
 
@@ -226,21 +259,74 @@ def get_tables(slide: Any) -> List[Any]:
     return [s for s in slide.shapes if s.shape_type == 19]
 
 
+def fetch_logo(domain: str, output_dir: Path) -> Optional[str]:
+    """Download company logo from Clearbit Logo API.
+
+    Args:
+        domain: Company domain, e.g. ``"appliedmaterials.com"``.
+        output_dir: Directory to save the cached logo file.
+
+    Returns:
+        Absolute path string of the saved logo PNG, or ``None`` if download
+        fails (network unavailable, domain not found, or any exception).
+    """
+    if not domain:
+        return None
+    logo_path = output_dir / "logo_cache.png"
+    if logo_path.exists():
+        return str(logo_path)
+    url = f"https://logo.clearbit.com/{domain}"
+    try:
+        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+        with urllib.request.urlopen(req, timeout=8) as resp:
+            data = resp.read()
+        with open(logo_path, 'wb') as f:
+            f.write(data)
+        return str(logo_path)
+    except Exception:
+        return None
+
+
 # ── Slide populators ──────────────────────────────────────────────────────────
 
-def slide_1(slide: Any, cm: Dict[str, Any]) -> None:
-    """Populate Slide 1 — company name in the title shape."""
-    shape = find_shape(slide, 'Title 1')
-    if shape:
-        set_text(shape, cm.get('company_name', '[FILL: Company Name]'))
+def slide_1(slide: Any, cm: Dict[str, Any], ctx: Optional[Dict] = None) -> None:
+    """Populate Slide 1 — DALP title and company logo.
+
+    Sets the title placeholder to "{Company Name} — DALP Account Plan" and
+    inserts the company logo downloaded from Clearbit into the lower-right
+    corner of the slide. If the logo download fails the title is still set.
+    """
+    company = cm.get('company_name', '[FILL: Company Name]')
+    title_shape = find_shape(slide, 'Title 1')
+    if title_shape:
+        set_text(title_shape, f"{company} — DALP Account Plan")
+
+    domain = cm.get('company_domain', '')
+    if domain and ctx:
+        output_dir = Path(ctx.get('output_dir', '.'))
+        logo_path = fetch_logo(domain, output_dir)
+        if logo_path:
+            try:
+                # Lower-right corner: 2.5" wide × 1.5" tall, 0.4" inset from edges
+                slide.shapes.add_picture(
+                    logo_path,
+                    Inches(10.43), Inches(5.60), Inches(2.5), Inches(1.5)
+                )
+                print("  ↳ Logo inserted from Clearbit")
+            except Exception as e:
+                print(f"  ↳ Logo insert failed: {e}")
 
 
-def slide_2(slide: Any, cm: Dict[str, Any]) -> None:
+def slide_2(slide: Any, cm: Dict[str, Any], ctx: Optional[Dict] = None) -> None:
     """Populate Slide 2 — Executive Summary table and last-refreshed date.
 
-    The executive summary table has 8 columns; content lands in row 1 at
-    columns 0, 1, 3, 5, and 7. Columns 2, 4, and 6 are merged continuations
-    of their preceding cell and must be skipped to avoid XML corruption.
+    The executive summary table (Table 5) has 8 columns; content lands in
+    row 1 at the anchor cells for each merged column group:
+      col 0 — Business Issue (single)
+      col 1 — Big Idea (spans cols 1-2)
+      col 3 — Company Objectives (spans cols 3-4)
+      col 5 — Challenges (spans cols 5-6)
+      col 7 — Adobe Differentiated Solution (single)
     """
     s = cm.get('slide_2', {})
     tables = get_tables(slide)
@@ -264,12 +350,18 @@ def slide_2(slide: Any, cm: Dict[str, Any]) -> None:
         set_text(date_shape, f"Last Refreshed on: {cm.get('date', datetime.today().strftime('%Y-%m-%d'))}")
 
 
-def slide_3(slide: Any, cm: Dict[str, Any]) -> None:
-    """Populate Slide 3 — Company Overview content boxes."""
+def slide_3(slide: Any, cm: Dict[str, Any], ctx: Optional[Dict] = None) -> None:
+    """Populate Slide 3 — Company Overview content boxes.
+
+    Rectangle 11 (LOB A / main account overview) and Rectangle 32 (LOB B /
+    department overview) both expect a 10-line structured format matching the
+    template's labeled fields. Content should be newline-delimited with each
+    line starting "FieldName: value".
+    """
     s = cm.get('slide_3', {})
     targets: Dict[str, str] = {
-        'Rectangle 11': s.get('account_background',    '[FILL: Revenue · Employees · Business Focus · Industry · Position]'),
-        'Rectangle 32': s.get('account_background_lob','[FILL: LOB/Department account overview]'),
+        'Rectangle 11': s.get('account_background',    '[FILL: Annual Revenue:\nOnline Revenue:\nSize:\nBusiness Focus & Major Divisions:\nIndustry & Position:\nGeneral digital maturity:\nGeography:\nCompetitive Footprint:\nAzure or AWS Commitments:\nPartner Footprint:]'),
+        'Rectangle 32': s.get('account_background_lob','[FILL: Annual Revenue:\nOnline Revenue:\nSize:\nBusiness Focus & Major Divisions:\nIndustry & Position:\nGeneral digital maturity:\nGeography:\nCompetitive Footprint:\nAzure or AWS Commitments:\nPartner Footprint:]'),
         'Rectangle 34': s.get('account_intel',          '[FILL: Account intelligence — whitespace rationale, Tier 1 reasoning]'),
         'Rectangle 51': s.get('adobe_strengths',        '[FILL: Adobe advantages and capabilities for this account]'),
         'Rectangle 59': s.get('opportunities',          '[FILL: Specific opportunity areas to create value]'),
@@ -280,7 +372,7 @@ def slide_3(slide: Any, cm: Dict[str, Any]) -> None:
             set_text(shape, text)
 
 
-def slide_4(slide: Any, cm: Dict[str, Any]) -> None:
+def slide_4(slide: Any, cm: Dict[str, Any], ctx: Optional[Dict] = None) -> None:
     """Populate Slide 4 — Performance History (renewals and renewal strategy).
 
     Populated from CLI arguments (``--arr``, ``--renewal``) if provided by the
@@ -308,7 +400,7 @@ def slide_4(slide: Any, cm: Dict[str, Any]) -> None:
             pass
 
 
-def slide_5(slide: Any, cm: Dict[str, Any]) -> None:
+def slide_5(slide: Any, cm: Dict[str, Any], ctx: Optional[Dict] = None) -> None:
     """Populate Slide 5 — Market Landscape (trends, goals, priorities, partners)."""
     s = cm.get('slide_5', {})
     targets: Dict[str, str] = {
@@ -326,31 +418,23 @@ def slide_5(slide: Any, cm: Dict[str, Any]) -> None:
             set_text(shape, text)
 
 
-def slide_6(slide: Any, cm: Dict[str, Any]) -> None:
+def slide_6(slide: Any, cm: Dict[str, Any], ctx: Optional[Dict] = None) -> None:
     """Populate Slide 6 — Buying Committee table.
 
-    Removes all non-placeholder rectangle and text-box shapes from the slide
-    before inserting the new table. This clears the template's pre-built org
-    chart diagram (individual ``AUTO_SHAPE`` rectangles) and associated legend
-    text boxes, which cannot coexist cleanly with the programmatically inserted
-    table.
+    Removes ALL non-placeholder shapes from the slide (org chart boxes,
+    connector lines, legend text boxes, partner relationship rectangles,
+    photo ovals, and all GROUP shapes) before inserting the new table. This
+    cleanly replaces the template's pre-built org chart diagram.
 
-    Placeholder shapes (e.g. the slide title) are preserved via the
-    ``is_placeholder`` guard. If org chart shapes happen to be grouped
-    (``shape_type == 6``), add ``6`` to the type filter.
+    Only the title placeholder ('Customer Organization Chart') is preserved.
 
-    Table layout:
-        - Columns: Name (2.2 in) | Title (3.0 in) | Role (2.8 in) | Attitude (4.5 in)
-        - Header row: Adobe red background (``#FA0F00``), white bold text
-        - Data rows: up to 10 contacts from ``content_map.json``
-          ``slide_6.buying_committee``
+    Table layout (5 columns, 12.5" total):
+        Name (2.0") | Title (2.5") | Role (1.8") | Reason for Engagement (4.2") | Attitude (2.0")
+        Header row: Adobe red background (#FA0F00), white bold text
+        Data rows: up to 10 contacts from content_map.json slide_6.buying_committee
     """
-    # Remove org chart shapes and legend before adding the table.
-    # Shape types: 1 = AUTO_SHAPE (rectangles), 17 = TEXT_BOX (legend labels)
-    to_remove = [
-        s for s in slide.shapes
-        if not s.is_placeholder and s.shape_type in (1, 17)
-    ]
+    # Remove ALL non-placeholder shapes — org chart, legend, lines, pictures, groups
+    to_remove = [s for s in slide.shapes if not s.is_placeholder]
     for s in to_remove:
         s._element.getparent().remove(s._element)
 
@@ -360,13 +444,14 @@ def slide_6(slide: Any, cm: Dict[str, Any]) -> None:
 
     rows = min(len(contacts), 10) + 1  # +1 for header row
     tbl_shape = slide.shapes.add_table(
-        rows, 4, Inches(0.3), Inches(1.15), Inches(12.5), Pt(20) * rows
+        rows, 5, Inches(0.3), Inches(1.15), Inches(12.5), Pt(20) * rows
     )
     tbl = tbl_shape.table
-    tbl.columns[0].width = Inches(2.2)
-    tbl.columns[1].width = Inches(3.0)
-    tbl.columns[2].width = Inches(2.8)
-    tbl.columns[3].width = Inches(4.5)
+    tbl.columns[0].width = Inches(2.0)
+    tbl.columns[1].width = Inches(2.5)
+    tbl.columns[2].width = Inches(1.8)
+    tbl.columns[3].width = Inches(4.2)
+    tbl.columns[4].width = Inches(2.0)
 
     def styled_cell(cell: Any, text: str, bold: bool = False, header: bool = False) -> None:
         tf = cell.text_frame
@@ -386,18 +471,26 @@ def slide_6(slide: Any, cm: Dict[str, Any]) -> None:
             )
             srgbClr.set('val', 'FA0F00')  # Adobe red
 
-    for ci, header_text in enumerate(['Name', 'Title', 'Role', 'Attitude toward Adobe']):
+    headers = ['Name', 'Title', 'Role', 'Reason for Engagement', 'Attitude toward Adobe']
+    for ci, header_text in enumerate(headers):
         styled_cell(tbl.cell(0, ci), header_text, bold=True, header=True)
 
     for ri, contact in enumerate(contacts[:10]):
         styled_cell(tbl.cell(ri + 1, 0), str(contact.get('name',     '')))
         styled_cell(tbl.cell(ri + 1, 1), str(contact.get('title',    '')))
         styled_cell(tbl.cell(ri + 1, 2), str(contact.get('role',     '')))
-        styled_cell(tbl.cell(ri + 1, 3), str(contact.get('attitude', '')))
+        styled_cell(tbl.cell(ri + 1, 3), str(contact.get('reason',   '')))
+        styled_cell(tbl.cell(ri + 1, 4), str(contact.get('attitude', '')))
 
 
-def slide_7(slide: Any, cm: Dict[str, Any]) -> None:
-    """Populate Slide 7 — Value Strategy (big idea, business issue, portfolio plays)."""
+def slide_7(slide: Any, cm: Dict[str, Any], ctx: Optional[Dict] = None) -> None:
+    """Populate Slide 7 — Value Strategy.
+
+    Populates big idea, tagline, business issue, portfolio plays, path to
+    value, and like-customer references. The ``Rectangle 63`` (like customers)
+    shape is nested two levels deep in Group 218 → Group 60 and requires the
+    recursive ``find_shape`` to locate.
+    """
     s = cm.get('slide_7', {})
     targets: Dict[str, str] = {
         'Rectangle 25':  s.get('big_idea',       '[FILL: Big Idea in customer language — 2-3 sentences]'),
@@ -405,6 +498,7 @@ def slide_7(slide: Any, cm: Dict[str, Any]) -> None:
         'Rectangle 69':  s.get('business_issue',   '[FILL: Business issue impacting performance and goals]'),
         'Rectangle 84':  s.get('portfolio_plays',  '[FILL: Adobe Portfolio / Sales Plays to pitch]'),
         'Rectangle 217': s.get('path_to_value',    '[FILL: Path to Value and Budget alignment. Potential pipeline: $X]'),
+        'Rectangle 63':  s.get('like_customers',   '[FILL: Peer companies with similar ALM/Adobe DX deployments]'),
     }
     for name, text in targets.items():
         shape = find_shape(slide, name)
@@ -412,7 +506,7 @@ def slide_7(slide: Any, cm: Dict[str, Any]) -> None:
             set_text(shape, text)
 
 
-def slide_8(slide: Any, cm: Dict[str, Any]) -> None:
+def slide_8(slide: Any, cm: Dict[str, Any], ctx: Optional[Dict] = None) -> None:
     """Populate Slide 8 — FY Opportunities summary.
 
     Populated from CLI arguments (``--arr``, ``--stage``, ``--close-date``) if
@@ -429,29 +523,70 @@ def slide_8(slide: Any, cm: Dict[str, Any]) -> None:
             pass
 
 
-def slide_9(slide: Any, cm: Dict[str, Any]) -> None:
-    """Populate Slide 9 — FY Timeline touchpoints.
+def slide_9(slide: Any, cm: Dict[str, Any], ctx: Optional[Dict] = None) -> None:
+    """Populate Slide 9 — FY Timeline monthly touchpoints.
 
-    Two tables cover the fiscal year: index 0 spans Dec–Jul (H1),
-    index 1 spans Aug–Nov (H2). Content lands in row 1, column 1 of each.
+    Supports two content_map.json formats:
+
+    **New format** (preferred): nested objects with monthly keys distribute
+    touchpoints across individual month columns:
+    ``slide_9.h1 = {"december": "...", "january": "...", ...}``
+    ``slide_9.h2 = {"august": "...", ..., "november": "..."}``
+
+    **Legacy format** (backward-compatible): flat strings written to the
+    first month column of each half-year table:
+    ``slide_9.touchpoints_h1`` and ``slide_9.touchpoints_h2``
+
+    H1 table covers December (col 1) through July (col 8).
+    H2 table covers August (col 1) through November (col 4).
     """
     s = cm.get('slide_9', {})
     tables = get_tables(slide)
+
+    H1_MONTHS = ['december', 'january', 'february', 'march',
+                 'april',    'may',     'june',     'july']
+    H2_MONTHS = ['august', 'september', 'october', 'november']
+
     if tables:
-        try:
-            set_cell_text(tables[0].table.cell(1, 1),
-                          s.get('touchpoints_h1', '[FILL: H1 touchpoints — events, renewal meetings, CEC]'))
-        except Exception:
-            pass
+        t = tables[0].table
+        h1 = s.get('h1')
+        if isinstance(h1, dict):
+            for col_offset, month in enumerate(H1_MONTHS):
+                text = h1.get(month, '')
+                if text:
+                    try:
+                        set_cell_text(t.cell(1, col_offset + 1), text)
+                    except Exception:
+                        pass
+        else:
+            legacy = s.get('touchpoints_h1', '')
+            if legacy:
+                try:
+                    set_cell_text(t.cell(1, 1), legacy)
+                except Exception:
+                    pass
+
     if len(tables) > 1:
-        try:
-            set_cell_text(tables[1].table.cell(1, 1),
-                          s.get('touchpoints_h2', '[FILL: H2 touchpoints — MAX, renewal close, EBC]'))
-        except Exception:
-            pass
+        t2 = tables[1].table
+        h2 = s.get('h2')
+        if isinstance(h2, dict):
+            for col_offset, month in enumerate(H2_MONTHS):
+                text = h2.get(month, '')
+                if text:
+                    try:
+                        set_cell_text(t2.cell(1, col_offset + 1), text)
+                    except Exception:
+                        pass
+        else:
+            legacy = s.get('touchpoints_h2', '')
+            if legacy:
+                try:
+                    set_cell_text(t2.cell(1, 1), legacy)
+                except Exception:
+                    pass
 
 
-def slide_11(slide: Any, cm: Dict[str, Any]) -> None:
+def slide_11(slide: Any, cm: Dict[str, Any], ctx: Optional[Dict] = None) -> None:
     """Populate Slide 11 — Big Idea appendix.
 
     Writes four labeled rows (Goals, Challenges, Initiatives, Impact) into the
@@ -518,6 +653,8 @@ def main() -> None:
     output_dir = Path(args.output)
     output_dir.mkdir(parents=True, exist_ok=True)
 
+    ctx: Dict[str, Any] = {'output_dir': str(output_dir)}
+
     company  = re.sub(r'[^\w\s-]', '', cm.get('company_name', 'Unknown')).strip().replace(' ', '-')
     date_str = cm.get('date', datetime.today().strftime('%Y-%m-%d'))
     out_name = f"{company}-Business-Plan-{date_str}.pptx"
@@ -537,7 +674,7 @@ def main() -> None:
         n = i + 1
         if n in POPULATORS:
             try:
-                POPULATORS[n](slide, cm)
+                POPULATORS[n](slide, cm, ctx)
             except Exception as e:
                 errors.append(f"Slide {n}: {e}")
 

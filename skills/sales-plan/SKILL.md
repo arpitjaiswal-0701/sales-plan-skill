@@ -113,7 +113,8 @@ Apply these rules when distilling:
 
 ```json
 {
-  "company_name": "<exact company name, 60 chars max>",
+  "company_name":   "<exact company name as it appears on their website, 60 chars max>",
+  "company_domain": "<company domain for logo fetch, e.g. 'appliedmaterials.com'. Extract from the prospect URL. No protocol, no path, no www prefix.>",
   "date": "<YYYY-MM-DD today>",
 
   "slide_2": {
@@ -125,11 +126,11 @@ Apply these rules when distilling:
   },
 
   "slide_3": {
-    "account_background":    "<Factual company snapshot as labeled lines — Revenue · Employees · Industry · HQ · Business Model. Use exact numbers. 4-6 lines, 700 chars max>",
-    "account_background_lob":"<The specific division, line of business, or workforce segment most relevant to an ALM or Adobe DX sale — e.g., HR/L&D org, IT, Marketing COE, or a major global business unit. If not identified, repeat account_background. 600 chars max>",
+    "account_background":    "<MUST follow this exact 10-line labeled format — one field per line, no blank lines:\nAnnual Revenue: [exact figure with source year]\nOnline Revenue: [figure or N/A]\nSize: [X employees]\nBusiness Focus & Major Divisions: [key segments]\nIndustry & Position: [industry + market rank]\nGeneral digital maturity: [low/medium/high + 1-sentence context]\nGeography: [HQ + key operating regions]\nCompetitive Footprint: [key tech vendors/platforms in use]\nAzure or AWS Commitments: [cloud provider + contract scale if known]\nPartner Footprint: [key SI/consulting partners]\n700 chars max>",
+    "account_background_lob":"<The specific LOB, division, or workforce segment most relevant to an ALM or Adobe DX sale (e.g., HR/L&D org, AGS field services, IT, Marketing COE). MUST use the same 10-line labeled format as account_background, scoped to this specific division:\nAnnual Revenue: [segment revenue or N/A]\nOnline Revenue: [N/A if internal L&D]\nSize: [employees in this division]\nBusiness Focus & Major Divisions: [this LOB's mandate]\nIndustry & Position: [how this LOB ranks vs peers]\nGeneral digital maturity: [maturity of this specific org]\nGeography: [where this division operates]\nCompetitive Footprint: [LMS/LXP/HCM tools in use by this LOB]\nAzure or AWS Commitments: [relevant cloud commitments for this LOB]\nPartner Footprint: [vendors or SIs serving this LOB]\n600 chars max>",
     "account_intel":         "<Sales rationale for pursuing this account now — whitespace (what Adobe doesn't have yet), trigger events (leadership change, transformation initiative, contract event), and account tier/priority rationale. Be specific. 600 chars max>",
     "adobe_strengths":       "<Adobe's specific advantages for winning at this account — tailored to their industry, tech stack, and known pain points. Include proof points (customer references in same industry, specific ALM capabilities they need). Not generic Adobe strengths. 5 bullets, 600 chars max>",
-    "opportunities":         "<Specific Adobe product plays and expansion opportunities. Each bullet should name the product, the use case, and the business impact — e.g., '• ALM — replace legacy LMS for global manufacturing workforce, 15k+ learners'. 5 bullets, 600 chars max>"
+    "opportunities":         "<Specific Adobe product plays and expansion opportunities. Each bullet names the product, the use case, and the business impact — e.g., '• ALM — replace legacy LMS for global manufacturing workforce, 15k+ learners'. 5 bullets, 600 chars max>"
   },
 
   "slide_4": {
@@ -149,7 +150,13 @@ Apply these rules when distilling:
 
   "slide_6": {
     "buying_committee": [
-      {"name": "<full name>", "title": "<job title>", "role": "<Economic Buyer|Champion|Technical Evaluator|End User|Blocker|Coach>", "attitude": "<Positive|Neutral|Negative|Unknown>"},
+      {
+        "name":     "<full name>",
+        "title":    "<exact job title>",
+        "role":     "<Economic Buyer|Champion|Technical Evaluator|End User|Blocker|Coach>",
+        "reason":   "<1-2 sentences: why this person matters to the deal — their specific pain point, their relationship to the decision, their key question to answer, or their influence over budget/selection>",
+        "attitude": "<Positive|Neutral|Negative|Unknown>"
+      },
       "... up to 10 contacts from DECISION-MAKERS.md Buying Committee Map ..."
     ]
   },
@@ -159,7 +166,8 @@ Apply these rules when distilling:
     "tagline":        "<A single memorable sentence capturing the opportunity — sharp enough to be a meeting title or email subject line. 250 chars max>",
     "business_issue": "<The specific business issue driving urgency for a decision — quantified impact, named stakeholders affected, timeline pressure if known. This is the 'so what' that justifies executive attention. 600 chars max>",
     "portfolio_plays":"<The specific Adobe products/plays to lead with and why — mapped to the identified business issue. Include the sales motion (new logo, upsell, competitive displacement) and the proof point or use case to anchor the pitch. 600 chars max>",
-    "path_to_value":  "<How Adobe delivers ROI for this account — include budget indicators, decision timeline, potential ARR, and the first value milestone (quick win). Connect to the economic buyer's success metrics. 600 chars max>"
+    "path_to_value":  "<How Adobe delivers ROI for this account — include budget indicators, decision timeline, potential ARR, and the first value milestone (quick win). Connect to the economic buyer's success metrics. 600 chars max>",
+    "like_customers": "<2-3 peer companies (same industry or use case) that have deployed ALM or Adobe DX in comparable scenarios — include company name, the specific use case, and the outcome or proof point. Anchor credibility for the pitch. 400 chars max>"
   },
 
   "slide_8": {
@@ -167,8 +175,22 @@ Apply these rules when distilling:
   },
 
   "slide_9": {
-    "touchpoints_h1": "<Key planned touchpoints Dec–Jul — customer events, renewal milestones, QBR cadence, Adobe CEC or Summit attendance, POC kick-offs. Include specific months where known. If --renewal or --close-date were passed, anchor them here. 500 chars max>",
-    "touchpoints_h2": "<Key planned touchpoints Aug–Nov — contract events, renewal close, EBC, MAX, executive briefing. Include months and owners where known. 500 chars max>"
+    "h1": {
+      "december":  "<1-2 short touchpoints for December — e.g. 'CEC attendance; renewal strategy kick-off with champion'. 80 chars max>",
+      "january":   "<1-2 short touchpoints for January — e.g. 'Executive roundtable; QBR'. 80 chars max>",
+      "february":  "<1-2 short touchpoints for February — e.g. 'Product demo; discovery session'. 80 chars max>",
+      "march":     "<1-2 short touchpoints for March — e.g. 'Adobe Summit attendance; exec dinner'. 80 chars max>",
+      "april":     "<1-2 short touchpoints for April — e.g. 'POC scope review; business case draft'. 80 chars max>",
+      "may":       "<1-2 short touchpoints for May — e.g. 'Business case to CHRO; budget alignment'. 80 chars max>",
+      "june":      "<1-2 short touchpoints for June — e.g. 'Contract review; procurement kick-off'. 80 chars max>",
+      "july":      "<1-2 short touchpoints for July — e.g. 'Target close / renewal; EBC if needed'. 80 chars max>"
+    },
+    "h2": {
+      "august":    "<1-2 short touchpoints for August. 80 chars max>",
+      "september": "<1-2 short touchpoints for September — e.g. 'QBR; user adoption review'. 80 chars max>",
+      "october":   "<1-2 short touchpoints for October — e.g. 'Adobe MAX attendance'. 80 chars max>",
+      "november":  "<1-2 short touchpoints for November — e.g. 'FY budget alignment; expansion conversation'. 80 chars max>"
+    }
   },
 
   "slide_11": {
@@ -186,12 +208,14 @@ Apply these rules when distilling:
 
 | Field | Primary source | Secondary source |
 |-------|---------------|-----------------|
+| company_domain | Prospect URL (extract domain) | — |
 | slide_2.business_issue | PROSPECT-ANALYSIS §Executive Summary | LEAD-QUALIFICATION §Need Analysis |
 | slide_2.big_idea | MEETING-PREP §Talking Points (top 1) | — |
 | slide_2.company_objectives | PROSPECT-ANALYSIS §Company Profile | MEETING-PREP §Business Situation |
 | slide_2.challenges | PROSPECT-ANALYSIS §Executive Summary (red flags) | LEAD-QUALIFICATION §Red Flags |
 | slide_2.adobe_solution | COMPETITIVE-INTEL §Competitive Positioning Statements | MEETING-PREP §Competitive Context |
 | slide_3.account_background | PROSPECT-ANALYSIS §Prospect Snapshot table | PROSPECT-ANALYSIS §Company Profile |
+| slide_3.account_background_lob | DECISION-MAKERS §Buying Committee Map (org context) | PROSPECT-ANALYSIS §Company Profile |
 | slide_3.account_intel | PROSPECT-ANALYSIS §Opportunity Assessment | LEAD-QUALIFICATION §Opportunity Quality |
 | slide_3.adobe_strengths | COMPETITIVE-INTEL §Win Patterns | MEETING-PREP §Competitive Context |
 | slide_3.opportunities | LEAD-QUALIFICATION §Opportunity Quality Score | PROSPECT-ANALYSIS §Executive Summary |
@@ -200,11 +224,12 @@ Apply these rules when distilling:
 | slide_5.digital_priorities | MEETING-PREP §Business Situation | PROSPECT-ANALYSIS §Company Profile |
 | slide_5.customer_challenges | MEETING-PREP §Discovery Questions (Listen For) | LEAD-QUALIFICATION §Need Analysis |
 | slide_5.partner_strategy | DECISION-MAKERS §Multi-Threading Strategy | COMPETITIVE-INTEL §Current Solutions |
-| slide_6.buying_committee | DECISION-MAKERS §Buying Committee Map | — |
+| slide_6.buying_committee | DECISION-MAKERS §Buying Committee Map | PROSPECT-ANALYSIS §Key Stakeholders |
 | slide_7.big_idea | MEETING-PREP §Talking Points | LEAD-QUALIFICATION §Pain Point Analysis |
 | slide_7.portfolio_plays | COMPETITIVE-INTEL §Recommended Competitive Strategy | MEETING-PREP §Talking Points |
 | slide_7.path_to_value | LEAD-QUALIFICATION §BANT (Budget Analysis) | MEETING-PREP §Success Metrics |
-| slide_9.touchpoints_h1 | MEETING-PREP §Success Metrics | LEAD-QUALIFICATION §Timeline Analysis |
+| slide_7.like_customers | COMPETITIVE-INTEL §Current Solutions | MEETING-PREP §Proof Points |
+| slide_9.h1/h2 | MEETING-PREP §Success Metrics | LEAD-QUALIFICATION §Timeline Analysis |
 | slide_11.goals | PROSPECT-ANALYSIS §Company Profile | MEETING-PREP §Business Situation |
 | slide_11.big_idea_paragraph | All sources — synthesized | — |
 
