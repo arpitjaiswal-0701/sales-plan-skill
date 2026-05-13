@@ -109,7 +109,7 @@ See [Installation Walkthrough](#installation-walkthrough) below.
 Open a terminal and run:
 
 ```bash
-git clone https://github.com/YOUR_REPO_URL/sales-plan-skill.git
+git clone https://github.com/arpitjaiswal-0701/sales-plan-skill/sales-plan-skill.git
 cd sales-plan-skill
 chmod +x install.sh
 ./install.sh
@@ -118,7 +118,7 @@ chmod +x install.sh
 ### Windows PowerShell
 
 ```powershell
-git clone https://github.com/YOUR_REPO_URL/sales-plan-skill.git
+git clone https://github.com/arpitjaiswal-0701/sales-plan-skill/sales-plan-skill.git
 cd sales-plan-skill
 .\install.ps1
 ```
@@ -265,7 +265,7 @@ A clone of your template with research content populated by shape name. Fonts, c
 ### Auto-populated slides
 
 **Slide 1 — Title**
-Company name. Clean, no action needed.
+Set to "{Company Name} — DALP Account Plan". Company logo inserted automatically from Clearbit if the domain is in `content_map.json`.
 
 ---
 
@@ -311,14 +311,14 @@ Seven zones from research:
 ---
 
 **Slide 6 — Org Chart (Buying Committee)**
-A clean table inserted by the script:
+A clean table inserted by the script (ALL template org chart shapes are removed first):
 
-| Name | Title | Role | Attitude toward Adobe |
-|------|-------|------|-----------------------|
-| Person A | SVP, Engineering | Economic Buyer | Unknown |
-| Person B | Director, L&D | Champion | Positive |
+| Name | Title | Role | Reason for Engagement | Attitude toward Adobe |
+|------|-------|------|----------------------|-----------------------|
+| Person A | SVP, Engineering | Economic Buyer | Controls L&D budget; mandate to modernize training | Unknown |
+| Person B | Director, L&D | Champion | Pain owner; PATHWAY platform gaps directly impact her team | Positive |
 
-Populated from `DECISION-MAKERS.md`. Up to 10 contacts. Roles are one of: Economic Buyer, Champion, Technical Evaluator, End User, Blocker, Coach.
+Populated from `DECISION-MAKERS.md`. Up to 10 contacts. Roles: Economic Buyer, Champion, Technical Evaluator, End User, Blocker, Coach.
 
 > **Verify before presenting.** Contact data comes from public research (LinkedIn, company site, news). Cross-check against Sales Nav or your own knowledge before using contact names in customer conversations.
 
@@ -581,7 +581,7 @@ The deal folder name is derived from the company name found in research. If the 
 curl -fsSL https://raw.githubusercontent.com/zubair-trabzada/ai-sales-team-claude/main/install.sh | bash
 
 # Step 2 — Install /sales plan
-git clone https://github.com/YOUR_REPO_URL/sales-plan-skill.git
+git clone https://github.com/arpitjaiswal-0701/sales-plan-skill/sales-plan-skill.git
 cd sales-plan-skill && ./install.sh          # Mac / Git Bash
 cd sales-plan-skill && .\install.ps1         # Windows PowerShell
 ```
@@ -606,15 +606,15 @@ cd sales-plan-skill && .\install.ps1         # Windows PowerShell
 
 | Slide | Title | Status |
 |-------|-------|--------|
-| 1 | Title (company name) | Auto |
+| 1 | Title + company logo | Auto |
 | 2 | Executive Summary | Auto |
-| 3 | Company Overview | Auto |
+| 3 | Company Overview (10-line structured format) | Auto |
 | 4 | Performance History | **Manual** — source: Panorama / Clari |
 | 5 | Market Trends & Goals | Auto |
-| 6 | Org Chart / Buying Committee | Auto |
-| 7 | Value Strategy | Auto |
+| 6 | Org Chart / Buying Committee (5 columns incl. Reason) | Auto |
+| 7 | Value Strategy + Like Customers | Auto |
 | 8 | FY Opportunities | **Manual** — source: Clari |
-| 9 | FY Timeline | Auto |
+| 9 | FY Timeline (month-by-month) | Auto |
 | 11 | Big Idea (Appendix) | Auto |
 
 ### Re-run PPT only (after manual edits to content_map.json)
