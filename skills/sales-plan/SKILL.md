@@ -67,6 +67,18 @@ The deal folder name is always `<slug>-<current-year>`. If a folder with that na
 
 If a `deal.yaml` file already exists in the deal folder root, read it first and treat its contents as confirmed facts — incorporate ARR, stage, renewal date, and products from `deal.yaml` into the `content_map.json` fields, overriding any extracted values.
 
+Expected `deal.yaml` keys (all optional):
+```yaml
+arr: 150000               # current/target ARR in dollars
+renewal: "Q3 FY26"        # renewal quarter
+stage: POC                # deal stage
+close_date: 2026-08-31    # ISO date
+products: "ALM,Marketo"   # comma-separated Adobe products
+champion: "Marie Gabriel" # confirmed champion name
+notes: |                  # free-text AE notes — treat as ground truth
+  …
+```
+
 ---
 
 ## Step 3 — Create deal folder structure
@@ -83,17 +95,17 @@ If the folder already exists (active deal in progress), treat this run as a refr
 
 ## Step 4 — Run 5 sub-skills in parallel
 
-Using the Agent tool, spawn **5 parallel agents**. Each follows the corresponding sales skill for `<url>` and saves its output to `content/`:
+Using the Agent tool, spawn **5 parallel agents**. Each follows the corresponding sales skill for `<url>` and saves its output to `content/`. Brief each agent with the content areas its output will feed in Step 5:
 
-| Agent | Skill to invoke | Output file |
-|-------|----------------|-------------|
-| A | `sales-qualify` | `__DEALS_ROOT__/<account>-<year>/content/LEAD-QUALIFICATION.md` |
-| B | `sales-contacts` | `__DEALS_ROOT__/<account>-<year>/content/DECISION-MAKERS.md` |
-| C | `sales-competitors` | `__DEALS_ROOT__/<account>-<year>/content/COMPETITIVE-INTEL.md` |
-| D | `sales-prep` | `__DEALS_ROOT__/<account>-<year>/content/MEETING-PREP.md` |
-| E | `sales-outreach` | `__DEALS_ROOT__/<account>-<year>/content/OUTREACH-SEQUENCE.md` |
+| Agent | Skill | Output file | Content_map fields this feeds |
+|-------|-------|-------------|-------------------------------|
+| A | `sales-qualify` | `…/content/LEAD-QUALIFICATION.md` | slide_2.challenges, slide_2.business_issue, slide_3.account_intel, slide_7.path_to_value, slide_9.h1/h2; focus on BANT, pain points, timeline triggers |
+| B | `sales-contacts` | `…/content/DECISION-MAKERS.md` | slide_6.buying_committee, slide_3.account_background_lob; map full buying committee with name/title/role/reason/attitude; capture org context for the L&D/HR division |
+| C | `sales-competitors` | `…/content/COMPETITIVE-INTEL.md` | slide_2.adobe_solution, slide_3.adobe_strengths, slide_7.portfolio_plays, slide_7.like_customers; identify current LMS/LXP/HCM stack, peer companies that deployed ALM, ALM differentiators |
+| D | `sales-prep` | `…/content/MEETING-PREP.md` | slide_2.big_idea, slide_5.digital_priorities, slide_7.big_idea, slide_7.tagline, slide_7.business_issue; extract the big idea narrative, digital transformation priorities, and timeline pressures |
+| E | `sales-outreach` | `…/content/OUTREACH-SEQUENCE.md` | No direct content_map fields; used as supplemental context for tone and messaging in Step 5 |
 
-Wait for all 5 agents to complete before proceeding.
+> Note: replace `…` with `__DEALS_ROOT__/<account>-<year>`. Wait for all 5 agents to complete before proceeding.
 
 ---
 
@@ -238,6 +250,13 @@ Write the completed JSON to:
 __DEALS_ROOT__/<account>-<year>/content/content_map.json
 ```
 
+Run this one-liner to validate the file before proceeding:
+```bash
+__PYTHON_CMD__ -c "import json,sys; data=json.load(open('__DEALS_ROOT__/<account>-<year>/content/content_map.json')); required=['company_name','company_domain','slide_2','slide_3','slide_5','slide_6','slide_7','slide_9','slide_11']; missing=[k for k in required if k not in data]; print('WARN missing:',missing) if missing else print('JSON OK')"
+```
+
+If any required keys are missing, fill them before continuing to Step 6.
+
 ---
 
 ## Step 6 — Run PPT generator
@@ -264,10 +283,9 @@ Deal folder:   <slug>/
 PPT:           artifacts/<Company>-Business-Plan-<date>.pptx
 Research:      content/ (6 files + content_map.json)
 
-Auto-populated:  Slides 1, 2, 3, 5, 6, 7, 9, 11
+Auto-populated:  Slides 1 (title + logo), 2, 3, 5, 6, 7, 9, 11
 Manual fill:     Slide 4 (Performance History — source: Panorama/Clari)
                  Slide 8 (FY Opportunities — source: Clari)
-                 Slide 9 (add specific event dates)
 ```
 
 If `--arr`, `--renewal`, or `--stage` were passed, remove those slides from the manual fill list as appropriate.
@@ -279,10 +297,10 @@ If `--arr`, `--renewal`, or `--stage` were passed, remove those slides from the 
 | Scenario | Action |
 |----------|--------|
 | URL unreachable | Report to user, suggest alternate URL, stop |
-| `sales-qualify` fails | Write `[FILL: /sales qualify unavailable]` for slide_2.challenges, slide_3.account_intel, slide_7.path_to_value, slide_9.touchpoints — continue |
+| `sales-qualify` fails | Write `[FILL: /sales qualify unavailable]` for slide_2.challenges, slide_3.account_intel, slide_7.path_to_value, slide_9.h1/h2 — continue |
 | `sales-contacts` fails | Write `[FILL: /sales contacts unavailable]` for slide_6.buying_committee — continue |
 | `sales-competitors` fails | Write `[FILL: /sales competitors unavailable]` for slide_2.adobe_solution, slide_3.adobe_strengths, slide_7.portfolio_plays — continue |
-| `sales-prep` fails | Write `[FILL: /sales prep unavailable]` for slide_2.big_idea, slide_5.digital_priorities, slide_7.big_idea, slide_9.touchpoints — continue |
+| `sales-prep` fails | Write `[FILL: /sales prep unavailable]` for slide_2.big_idea, slide_5.digital_priorities, slide_7.big_idea, slide_9.h1/h2 — continue |
 | `sales-outreach` fails | Log failure, no slide zones affected — continue |
 | Python script fails | Print full error, diagnose root cause, attempt fix (e.g. missing python-pptx — run `pip install python-pptx`) |
 | Template file not found | Report exact path checked, ask user to confirm file exists at `__TEMPLATE_PATH__` |
