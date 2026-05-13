@@ -45,7 +45,7 @@ Notes:
     - Shape names are matched exactly (case-sensitive). Run the shape
       inspector snippet in README.md if slides appear blank after population.
 
-Version: 1.2.0
+Version: 1.3.0
 Changelog: https://github.com/arpitjaiswal-0701/sales-plan-skill/blob/master/CHANGELOG.md
 """
 
@@ -55,10 +55,11 @@ import json
 import re
 import shutil
 import sys
+import time
 import urllib.request
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Set
 
 # Windows console may be cp1252 — reconfigure to utf-8 so Unicode output works
 if hasattr(sys.stdout, 'reconfigure'):
@@ -66,12 +67,11 @@ if hasattr(sys.stdout, 'reconfigure'):
 
 from pptx import Presentation
 from pptx.util import Inches, Pt
-from pptx.dml.color import RGBColor
 from pptx.oxml.ns import qn
 from lxml import etree
 
 
-__version__ = "1.2.0"
+__version__ = "1.3.0"
 
 TEMPLATE_DEFAULT = r"C:\Users\arjaiswa\OneDrive - Adobe\Lite DX Business Plan Template - Arpit.pptx"
 
@@ -98,6 +98,62 @@ def find_shape(container: Any, name: str) -> Optional[Any]:
             if result:
                 return result
     return None
+
+
+def find_shapes_batch(container: Any, names: Set[str]) -> Dict[str, Any]:
+    """Single-pass recursive search for multiple shape names.
+
+    More efficient than calling find_shape() N times on the same slide because
+    the shape tree (including nested GROUP containers) is traversed only once
+    regardless of how many names are requested. On slides with several group
+    shapes (e.g. slide 7 with Group 218 → Group 60) this avoids redundant
+    recursion.
+
+    Args:
+        container: A python-pptx Slide or GroupShapes object.
+        names: Set of exact shape names to collect.
+
+    Returns:
+        Dict mapping found shape names to shape objects. Names not found in the
+        slide are omitted from the result.
+    """
+    result: Dict[str, Any] = {}
+    _collect_shapes(container, names, result)
+    return result
+
+
+def _collect_shapes(container: Any, names: Set[str], result: Dict[str, Any]) -> None:
+    """Recursive helper for find_shapes_batch."""
+    if len(result) >= len(names):
+        return  # early exit — all targets found
+    for shape in getattr(container, 'shapes', []):
+        if shape.name in names and shape.name not in result:
+            result[shape.name] = shape
+        if shape.shape_type == 6:  # MSO_SHAPE_TYPE.GROUP
+            _collect_shapes(shape, names, result)
+
+
+def _normalize_txbody(txBody: Any) -> None:
+    """Apply anchor=top and normAutofit to an ``<a:txBody>`` element directly.
+
+    Shared implementation called by both :func:`normalize_body_props`
+    (shape-level entry point) and :func:`set_cell_text` (table cell entry
+    point), guaranteeing identical body-property behavior across all text
+    frames without code duplication.
+
+    Args:
+        txBody: An lxml element representing an ``<a:txBody>``.
+    """
+    bodyPr = txBody.find(qn('a:bodyPr'))
+    if bodyPr is None:
+        return
+    bodyPr.set('anchor', 't')
+    bodyPr.attrib.pop('anchorCtr', None)
+    for tag in (qn('a:noAutofit'), qn('a:spAutoFit')):
+        for el in bodyPr.findall(tag):
+            bodyPr.remove(el)
+    if not bodyPr.findall(qn('a:normAutofit')):
+        etree.SubElement(bodyPr, qn('a:normAutofit'))
 
 
 def set_text(shape: Any, text: str) -> None:
@@ -159,16 +215,13 @@ def normalize_body_props(shape: Any) -> None:
     Sets three properties on ``<a:bodyPr>`` that are frequently misconfigured
     in PowerPoint templates and produce three distinct visual failures:
 
-    - ``anchor="t"`` — aligns text to the top of the shape. Without this,
-      text can appear at the middle or bottom of a partially-filled box.
+    - ``anchor="t"`` — aligns text to the top of the shape.
     - ``<a:normAutofit>`` — shrinks the font proportionally to fit the shape's
       fixed dimensions, replacing ``<a:noAutofit>`` (clips overflow) and
-      ``<a:spAutoFit>`` (resizes the shape). Preserves template geometry.
-    - Removes ``anchorCtr`` — eliminates secondary vertical centering that
-      can re-introduce misalignment even after ``anchor`` is corrected.
+      ``<a:spAutoFit>`` (resizes the shape).
+    - Removes ``anchorCtr`` — eliminates secondary vertical centering.
 
-    Internal margins (``lIns``, ``rIns``, ``tIns``, ``bIns``) are intentionally
-    left untouched; they are set by the template designer per shape.
+    Delegates to :func:`_normalize_txbody` for the actual XML manipulation.
 
     Args:
         shape: A python-pptx shape with a text frame. Silently no-ops if the
@@ -176,28 +229,16 @@ def normalize_body_props(shape: Any) -> None:
     """
     if not shape or not shape.has_text_frame:
         return
-    txBody = shape.text_frame._txBody
-    bodyPr = txBody.find(qn('a:bodyPr'))
-    if bodyPr is None:
-        return
-
-    bodyPr.set('anchor', 't')
-    bodyPr.attrib.pop('anchorCtr', None)
-
-    for tag in (qn('a:noAutofit'), qn('a:spAutoFit')):
-        for el in bodyPr.findall(tag):
-            bodyPr.remove(el)
-    if not bodyPr.findall(qn('a:normAutofit')):
-        etree.SubElement(bodyPr, qn('a:normAutofit'))
+    _normalize_txbody(shape.text_frame._txBody)
 
 
 def set_cell_text(cell: Any, text: str) -> None:
     """Write text into a table cell using XML-level rebuild with normAutofit.
 
     Fully rebuilds all ``<a:p>`` elements inside the cell's ``<a:txBody>``,
-    preserving the first run's ``<a:rPr>`` formatting. Applies ``normAutofit``
-    and top-anchor to the cell's ``<a:bodyPr>`` to prevent row-height
-    expansion and text clipping. Supports ``\\n``-delimited multi-line text.
+    preserving the first run's ``<a:rPr>`` formatting. Delegates body-property
+    normalization to :func:`_normalize_txbody` to prevent row-height expansion
+    and text clipping. Supports ``\\n``-delimited multi-line text.
 
     Args:
         cell: A python-pptx table cell object.
@@ -232,16 +273,7 @@ def set_cell_text(cell: Any, text: str) -> None:
             t = etree.SubElement(r, qn('a:t'))
             t.text = line
 
-        # Prevent row-height expansion by using normAutofit on the cell body
-        bodyPr = txBody.find(qn('a:bodyPr'))
-        if bodyPr is not None:
-            bodyPr.set('anchor', 't')
-            bodyPr.attrib.pop('anchorCtr', None)
-            for tag in (qn('a:noAutofit'), qn('a:spAutoFit')):
-                for el in bodyPr.findall(tag):
-                    bodyPr.remove(el)
-            if not bodyPr.findall(qn('a:normAutofit')):
-                etree.SubElement(bodyPr, qn('a:normAutofit'))
+        _normalize_txbody(txBody)
     except Exception:
         pass
 
@@ -287,34 +319,75 @@ def fetch_logo(domain: str, output_dir: Path) -> Optional[str]:
         return None
 
 
+def _apply_cell_style(cell: Any, bold: bool = False, white_text: bool = False,
+                      bg_hex: Optional[str] = None) -> None:
+    """Apply font size and optional bold/color/background to a table cell.
+
+    Called after :func:`set_cell_text` since that function rebuilds all runs
+    from scratch. Sets font size to 8.5pt on all runs; optionally applies
+    bold, white text colour, and a solid background fill on the cell.
+
+    Args:
+        cell: A python-pptx table cell.
+        bold: Set run bold attribute when ``True``.
+        white_text: Apply white (#FFFFFF) font colour when ``True``.
+        bg_hex: Six-character hex string for cell background (e.g. ``'FA0F00'``).
+    """
+    txBody = cell.text_frame._txBody
+    for r_el in txBody.iter(qn('a:r')):
+        rPr = r_el.find(qn('a:rPr'))
+        if rPr is None:
+            rPr = etree.SubElement(r_el, qn('a:rPr'))
+        rPr.set('sz', '850')  # 8.5pt in hundredths of a point
+        if bold:
+            rPr.set('b', '1')
+        if white_text:
+            for existing in rPr.findall(qn('a:solidFill')):
+                rPr.remove(existing)
+            solidFill = etree.SubElement(rPr, qn('a:solidFill'))
+            etree.SubElement(solidFill, qn('a:srgbClr')).set('val', 'FFFFFF')
+    if bg_hex:
+        tcPr = cell._tc.get_or_add_tcPr()
+        for existing in tcPr.findall(qn('a:solidFill')):
+            tcPr.remove(existing)
+        solidFill = etree.SubElement(tcPr, qn('a:solidFill'))
+        etree.SubElement(solidFill, qn('a:srgbClr')).set('val', bg_hex)
+
+
 # ── Slide populators ──────────────────────────────────────────────────────────
 
 def slide_1(slide: Any, cm: Dict[str, Any], ctx: Optional[Dict] = None) -> None:
     """Populate Slide 1 — DALP title and company logo.
 
     Sets the title placeholder to "{Company Name} — DALP Account Plan" and
-    inserts the company logo downloaded from Clearbit into the lower-right
-    corner of the slide. If the logo download fails the title is still set.
+    inserts the company logo into the lower-right corner of the slide.
+    Checks ctx['logo_path'] first (pre-fetched by main); falls back to a
+    direct Clearbit download if not present in ctx. Silently skips logo if
+    download fails.
     """
     company = cm.get('company_name', '[FILL: Company Name]')
     title_shape = find_shape(slide, 'Title 1')
     if title_shape:
         set_text(title_shape, f"{company} — DALP Account Plan")
 
-    domain = cm.get('company_domain', '')
-    if domain and ctx:
-        output_dir = Path(ctx.get('output_dir', '.'))
-        logo_path = fetch_logo(domain, output_dir)
-        if logo_path:
-            try:
-                # Lower-right corner: 2.5" wide × 1.5" tall, 0.4" inset from edges
-                slide.shapes.add_picture(
-                    logo_path,
-                    Inches(10.43), Inches(5.60), Inches(2.5), Inches(1.5)
-                )
-                print("  ↳ Logo inserted from Clearbit")
-            except Exception as e:
-                print(f"  ↳ Logo insert failed: {e}")
+    # Use pre-fetched logo from ctx when available; fall back to direct fetch
+    logo_path = ctx.get('logo_path') if ctx else None
+    if not logo_path:
+        domain = cm.get('company_domain', '')
+        if domain and ctx:
+            output_dir = Path(ctx.get('output_dir', '.'))
+            logo_path = fetch_logo(domain, output_dir)
+
+    if logo_path:
+        try:
+            # Lower-right corner: 2.5" wide × 1.5" tall, 0.4" inset from edges
+            slide.shapes.add_picture(
+                logo_path,
+                Inches(10.43), Inches(5.60), Inches(2.5), Inches(1.5)
+            )
+            print("  ↳ Logo inserted")
+        except Exception as e:
+            print(f"  ↳ Logo insert failed: {e}")
 
 
 def slide_2(slide: Any, cm: Dict[str, Any], ctx: Optional[Dict] = None) -> None:
@@ -357,6 +430,8 @@ def slide_3(slide: Any, cm: Dict[str, Any], ctx: Optional[Dict] = None) -> None:
     department overview) both expect a 10-line structured format matching the
     template's labeled fields. Content should be newline-delimited with each
     line starting "FieldName: value".
+
+    Uses find_shapes_batch for a single-pass shape lookup across all 5 targets.
     """
     s = cm.get('slide_3', {})
     targets: Dict[str, str] = {
@@ -366,8 +441,9 @@ def slide_3(slide: Any, cm: Dict[str, Any], ctx: Optional[Dict] = None) -> None:
         'Rectangle 51': s.get('adobe_strengths',        '[FILL: Adobe advantages and capabilities for this account]'),
         'Rectangle 59': s.get('opportunities',          '[FILL: Specific opportunity areas to create value]'),
     }
+    found = find_shapes_batch(slide, set(targets.keys()))
     for name, text in targets.items():
-        shape = find_shape(slide, name)
+        shape = found.get(name)
         if shape:
             set_text(shape, text)
 
@@ -401,7 +477,10 @@ def slide_4(slide: Any, cm: Dict[str, Any], ctx: Optional[Dict] = None) -> None:
 
 
 def slide_5(slide: Any, cm: Dict[str, Any], ctx: Optional[Dict] = None) -> None:
-    """Populate Slide 5 — Market Landscape (trends, goals, priorities, partners)."""
+    """Populate Slide 5 — Market Landscape (trends, goals, priorities, partners).
+
+    Uses find_shapes_batch for a single-pass shape lookup across all 7 targets.
+    """
     s = cm.get('slide_5', {})
     targets: Dict[str, str] = {
         'Rectangle 49':  s.get('market_trends',          '[FILL: Broad industry/market developments — 3-4 bullets]'),
@@ -412,8 +491,9 @@ def slide_5(slide: Any, cm: Dict[str, Any], ctx: Optional[Dict] = None) -> None:
         'Rectangle 183': s.get('partner_strategy',        '[FILL: Partner strategy and relationships]'),
         'Rectangle 187': s.get('implementation_partners', '[FILL: Historical implementation partners]'),
     }
+    found = find_shapes_batch(slide, set(targets.keys()))
     for name, text in targets.items():
-        shape = find_shape(slide, name)
+        shape = found.get(name)
         if shape:
             set_text(shape, text)
 
@@ -430,8 +510,11 @@ def slide_6(slide: Any, cm: Dict[str, Any], ctx: Optional[Dict] = None) -> None:
 
     Table layout (5 columns, 12.5" total):
         Name (2.0") | Title (2.5") | Role (1.8") | Reason for Engagement (4.2") | Attitude (2.0")
-        Header row: Adobe red background (#FA0F00), white bold text
+        Header row: Adobe red background (#FA0F00), white bold text at 8.5pt
         Data rows: up to 10 contacts from content_map.json slide_6.buying_committee
+
+    Uses set_cell_text + _apply_cell_style (XML-level) for all cells, ensuring
+    normAutofit and consistent body properties on every row.
     """
     # Remove ALL non-placeholder shapes — org chart, legend, lines, pictures, groups
     to_remove = [s for s in slide.shapes if not s.is_placeholder]
@@ -453,34 +536,16 @@ def slide_6(slide: Any, cm: Dict[str, Any], ctx: Optional[Dict] = None) -> None:
     tbl.columns[3].width = Inches(4.2)
     tbl.columns[4].width = Inches(2.0)
 
-    def styled_cell(cell: Any, text: str, bold: bool = False, header: bool = False) -> None:
-        tf = cell.text_frame
-        tf.word_wrap = True
-        para = tf.paragraphs[0]
-        for r in para.runs:
-            r._r.getparent().remove(r._r)
-        run = para.add_run()
-        run.text = text
-        run.font.size = Pt(8.5)
-        run.font.bold = bold
-        if header:
-            run.font.color.rgb = RGBColor(0xFF, 0xFF, 0xFF)
-            tcPr = cell._tc.get_or_add_tcPr()
-            srgbClr = etree.SubElement(
-                etree.SubElement(tcPr, qn('a:solidFill')), qn('a:srgbClr')
-            )
-            srgbClr.set('val', 'FA0F00')  # Adobe red
-
     headers = ['Name', 'Title', 'Role', 'Reason for Engagement', 'Attitude toward Adobe']
     for ci, header_text in enumerate(headers):
-        styled_cell(tbl.cell(0, ci), header_text, bold=True, header=True)
+        set_cell_text(tbl.cell(0, ci), header_text)
+        _apply_cell_style(tbl.cell(0, ci), bold=True, white_text=True, bg_hex='FA0F00')
 
+    fields = ['name', 'title', 'role', 'reason', 'attitude']
     for ri, contact in enumerate(contacts[:10]):
-        styled_cell(tbl.cell(ri + 1, 0), str(contact.get('name',     '')))
-        styled_cell(tbl.cell(ri + 1, 1), str(contact.get('title',    '')))
-        styled_cell(tbl.cell(ri + 1, 2), str(contact.get('role',     '')))
-        styled_cell(tbl.cell(ri + 1, 3), str(contact.get('reason',   '')))
-        styled_cell(tbl.cell(ri + 1, 4), str(contact.get('attitude', '')))
+        for ci, key in enumerate(fields):
+            set_cell_text(tbl.cell(ri + 1, ci), str(contact.get(key, '')))
+            _apply_cell_style(tbl.cell(ri + 1, ci))
 
 
 def slide_7(slide: Any, cm: Dict[str, Any], ctx: Optional[Dict] = None) -> None:
@@ -488,8 +553,8 @@ def slide_7(slide: Any, cm: Dict[str, Any], ctx: Optional[Dict] = None) -> None:
 
     Populates big idea, tagline, business issue, portfolio plays, path to
     value, and like-customer references. The ``Rectangle 63`` (like customers)
-    shape is nested two levels deep in Group 218 → Group 60 and requires the
-    recursive ``find_shape`` to locate.
+    shape is nested two levels deep in Group 218 → Group 60 and is found via
+    the recursive find_shapes_batch single-pass traversal.
     """
     s = cm.get('slide_7', {})
     targets: Dict[str, str] = {
@@ -500,8 +565,9 @@ def slide_7(slide: Any, cm: Dict[str, Any], ctx: Optional[Dict] = None) -> None:
         'Rectangle 217': s.get('path_to_value',    '[FILL: Path to Value and Budget alignment. Potential pipeline: $X]'),
         'Rectangle 63':  s.get('like_customers',   '[FILL: Peer companies with similar ALM/Adobe DX deployments]'),
     }
+    found = find_shapes_batch(slide, set(targets.keys()))
     for name, text in targets.items():
-        shape = find_shape(slide, name)
+        shape = found.get(name)
         if shape:
             set_text(shape, text)
 
@@ -655,6 +721,18 @@ def main() -> None:
 
     ctx: Dict[str, Any] = {'output_dir': str(output_dir)}
 
+    # Pre-fetch logo before the populate loop so network I/O doesn't block
+    # slide 1 population timing and the cached path is reused on refresh runs.
+    domain = cm.get('company_domain', '')
+    if domain:
+        print(f"  Fetching logo for {domain}…")
+        lp = fetch_logo(domain, output_dir)
+        if lp:
+            ctx['logo_path'] = lp
+            print(f"  ↳ Cached: {Path(lp).name}")
+        else:
+            print(f"  ↳ Logo unavailable (network or domain not found)")
+
     company  = re.sub(r'[^\w\s-]', '', cm.get('company_name', 'Unknown')).strip().replace(' ', '-')
     date_str = cm.get('date', datetime.today().strftime('%Y-%m-%d'))
     out_name = f"{company}-Business-Plan-{date_str}.pptx"
@@ -670,17 +748,20 @@ def main() -> None:
     prs = Presentation(str(out_path))
 
     errors: List[str] = []
+    t_total = time.perf_counter()
     for i, slide in enumerate(prs.slides):
         n = i + 1
         if n in POPULATORS:
+            t0 = time.perf_counter()
             try:
                 POPULATORS[n](slide, cm, ctx)
+                print(f"  Slide {n}: {time.perf_counter() - t0:.2f}s")
             except Exception as e:
                 errors.append(f"Slide {n}: {e}")
 
     prs.save(str(out_path))
+    print(f"\n✓ PPT saved: {out_path}  ({time.perf_counter() - t_total:.2f}s total)")
 
-    print(f"\n✓ PPT saved: {out_path}")
     if errors:
         print("\n⚠ Non-fatal errors:")
         for e in errors:

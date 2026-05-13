@@ -59,17 +59,27 @@ If DECISION-MAKERS.md does not exist, start with an empty working list and proce
 
 ## Step 2 — Research org structure
 
-Run web searches to build and verify the org hierarchy. Research in this order:
+If the `exa-search` MCP is available, prefer it for people and company queries — it returns semantically matched results with higher entity precision than keyword search. Use entity-focused queries like `"<Company Name> Chief Learning Officer"` with `type:linkedin_profile` filtering when the tool supports it. Fall back to standard web search with the queries below if unavailable.
+
+Research in this order:
 
 ### 2a — Executive leadership layer
-Search: `"<Company Name>" CHRO OR "Chief Learning Officer" OR "VP Learning" OR "VP Talent" OR "VP HR" OR "VP L&D" site:linkedin.com`
 
-Extract name, title, and LinkedIn URL for each relevant executive. Also search the company's own website (`<url>/leadership` or `<url>/about/leadership`) and recent press releases for C-suite announcements.
+First, fetch the company's own leadership page directly — it often surfaces CHRO/CLO names and titles before any LinkedIn search is needed:
+- Try: `<url>/about/leadership`, `<url>/leadership`, `<url>/en/about/leadership-team`, `<url>/company/leadership`
+
+Then run targeted searches:
+- `"<Company Name>" CHRO OR "Chief People Officer" OR "Chief Learning Officer" site:linkedin.com`
+- `"<Company Name>" "VP Learning" OR "VP Talent" OR "EVP Human Resources" OR "VP HR" site:linkedin.com`
+
+Also check recent press releases for C-suite appointment announcements.
+
+Extract name, title, and LinkedIn URL for each relevant executive.
 
 ### 2b — L&D and HR division leaders
-Search: `"<Company Name>" "Head of Learning" OR "Director of Learning" OR "Director L&D" OR "Manager Learning" OR "CLO" OR "Head of Talent"`
-
-Search: `"<Company Name>" "VP HR" OR "CHRO" OR "Chief People Officer" OR "EVP Human Resources"`
+- `"<Company Name>" "Head of Learning" OR "Director of Learning" OR "Director L&D" OR "Manager Learning" OR "CLO" OR "Head of Talent"`
+- `"<Company Name>" "VP HR" OR "CHRO" OR "Chief People Officer" OR "EVP Human Resources"`
+- `"<Company Name>" "learning technology" OR "learning experience platform" OR "LMS" OR "LXP" title`
 
 For each person found, record: name, title, who they report to (if stated), LinkedIn URL, and the source URL.
 
@@ -77,7 +87,11 @@ For each person found, record: name, title, who they report to (if stated), Link
 Search: `"<Company Name>" CIO OR "Chief Information Officer" OR "VP IT" OR "VP Digital" OR "CTO"`
 
 ### 2d — Reporting line verification
-For each executive found, search: `"<name>" "<company>" reports to` or check their LinkedIn About section via web search to confirm the reporting structure.
+
+For each executive found:
+- `"<full name>" "<company name>" "reports to"` — press releases and org announcements sometimes confirm reporting lines explicitly
+- `"<full name>" site:linkedin.com "<company name>"` — LinkedIn About section often states reporting structure
+- If exa-search is available, query the person's LinkedIn URL directly for profile content including seniority and manager relationship
 
 ### 2e — Leadership change signals
 Search: `"<Company Name>" CHRO OR "Chief Learning Officer" OR "VP HR" hired OR appointed OR joins OR named 2024 OR 2025 OR 2026`

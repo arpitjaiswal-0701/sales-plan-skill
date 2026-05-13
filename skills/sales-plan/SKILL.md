@@ -106,7 +106,20 @@ Using the Agent tool, spawn **5 parallel agents**. Each follows the correspondin
 | E | `sales-outreach` | `…/content/OUTREACH-SEQUENCE.md` | No direct content_map fields; used as supplemental context for tone and messaging in Step 5 |
 | F _(optional)_ | `sales-orgchart` | `…/content/ORG-CHART.md` | Enriches slide_6.buying_committee with verified reporting lines, LinkedIn URLs, influence scores, and a Mermaid org diagram. Pass `--deals-folder=<path>` so it reads Agent B's DECISION-MAKERS.md as seed. Merge the enriched `buying_committee` JSON into content_map.json before Step 6. |
 
-> Note: replace `…` with `__DEALS_ROOT__/<account>-<year>`. Wait for all agents to complete before proceeding. Agent F is optional — run it when you need verified org hierarchy depth for the buying committee slide.
+> **Early start**: Agents A–E do not need `PROSPECT-ANALYSIS.md` to begin web research — spawn them immediately after Step 2 is invoked, while the prospect agent still runs. Agent F (optional) depends on Agent B's `DECISION-MAKERS.md`; start it only after Agent B completes.
+>
+> **Fan-in check**: Before Step 5, verify each required output file (Agents A–E) exists and is ≥200 words. For any missing or thin file, apply the corresponding `[FILL]` stubs from the error handling table and continue — do not halt.
+
+### Agent output contracts
+
+| Agent | Max words | Required sections |
+|-------|-----------|-------------------|
+| A | 1,200 | §BANT Analysis, §Need Analysis, §Pain Points, §Timeline Analysis |
+| B | 800 | §Buying Committee Map, §Multi-Threading Strategy |
+| C | 1,000 | §Current Solutions, §Competitive Positioning Statements, §Win Patterns |
+| D | 1,000 | §Business Situation, §Talking Points, §Discovery Questions, §Success Metrics |
+| E | 600 | 3-email sequence (Email 1, Email 2, Email 3) |
+| F _(opt.)_ | 1,500 | §Buying Committee — Enriched Contact Map, §Org Chart, §Intelligence Signals |
 
 ---
 
@@ -121,6 +134,24 @@ Apply these rules when distilling:
 - Truncate only when the field genuinely exceeds the budget after removing filler — never truncate to hit the budget artificially
 - For bullet lists: use `•` as prefix, one item per line; include all substantive bullets up to the stated count
 - For fields without a clear match in the source, synthesize from the closest available content — never leave a field blank or write [FILL] unless the schema explicitly says to
+
+### Distillation example
+
+**Source** (LEAD-QUALIFICATION.md §Need Analysis — Applied Materials, illustrative):
+> 34,000-person global workforce runs on SAP SuccessFactors (corporate) + SharePoint (field), creating compliance blind spots. CLO flagged "semiconductor process engineering skills gap" as top-3 HR priority for FY2026. $1.2M LXP consolidation budget pre-approved January 2026; procurement RFP expected Q2.
+
+**Correctly distilled:**
+```json
+"slide_2": {
+  "business_issue": "Applied Materials' 34,000-person workforce runs on a split LMS stack (SAP SuccessFactors + SharePoint field), creating compliance blind spots and a semiconductor process engineering skills gap — ranked top-3 HR priority for FY2026.",
+  "challenges": "• Split LMS: SAP SuccessFactors (corporate) + SharePoint (field)\n• Compliance blind spots in global field engineering\n• Critical semiconductor process engineering skills gap\n• No unified learner analytics"
+},
+"slide_7": {
+  "path_to_value": "Pre-approved $1.2M LXP consolidation budget; RFP expected Q2 FY2026. First value milestone: unified compliance dashboard for 34k learners within 90 days of go-live."
+}
+```
+
+**What to drop:** budget timing belongs in `slide_7.path_to_value`, not `slide_2.business_issue`. Restructure generic openers to lead with business impact. Never include "Adobe" in `business_issue` — this field must read in the customer's own voice.
 
 ### content_map.json schema
 
