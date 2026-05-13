@@ -104,8 +104,9 @@ Using the Agent tool, spawn **5 parallel agents**. Each follows the correspondin
 | C | `sales-competitors` | `…/content/COMPETITIVE-INTEL.md` | slide_2.adobe_solution, slide_3.adobe_strengths, slide_7.portfolio_plays, slide_7.like_customers; identify current LMS/LXP/HCM stack, peer companies that deployed ALM, ALM differentiators |
 | D | `sales-prep` | `…/content/MEETING-PREP.md` | slide_2.big_idea, slide_5.digital_priorities, slide_7.big_idea, slide_7.tagline, slide_7.business_issue; extract the big idea narrative, digital transformation priorities, and timeline pressures |
 | E | `sales-outreach` | `…/content/OUTREACH-SEQUENCE.md` | No direct content_map fields; used as supplemental context for tone and messaging in Step 5 |
+| F _(optional)_ | `sales-orgchart` | `…/content/ORG-CHART.md` | Enriches slide_6.buying_committee with verified reporting lines, LinkedIn URLs, influence scores, and a Mermaid org diagram. Pass `--deals-folder=<path>` so it reads Agent B's DECISION-MAKERS.md as seed. Merge the enriched `buying_committee` JSON into content_map.json before Step 6. |
 
-> Note: replace `…` with `__DEALS_ROOT__/<account>-<year>`. Wait for all 5 agents to complete before proceeding.
+> Note: replace `…` with `__DEALS_ROOT__/<account>-<year>`. Wait for all agents to complete before proceeding. Agent F is optional — run it when you need verified org hierarchy depth for the buying committee slide.
 
 ---
 
