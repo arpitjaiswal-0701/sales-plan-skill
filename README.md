@@ -9,7 +9,7 @@ One command. 6 research agents. A populated PPT in your deal folder.
 ## What It Does
 
 ```
-/sales plan https://www.snowflake.com --arr=150000 --renewal=Q3 --stage=POC
+/sales plan https://www.acme-corp.example --arr=150000 --renewal=Q3 --stage=POC
 ```
 
 1. Runs `/sales prospect` to establish company profile and deal folder
@@ -19,7 +19,7 @@ One command. 6 research agents. A populated PPT in your deal folder.
 5. Drops the finished deck in `deals/<account>-<year>/artifacts/`
 
 ```
-deals/snowflake-2026/
+deals/acme-2026/
 ├── PROSPECT-ANALYSIS.md
 ├── content/
 │   ├── LEAD-QUALIFICATION.md
@@ -29,7 +29,7 @@ deals/snowflake-2026/
 │   ├── OUTREACH-SEQUENCE.md
 │   └── content_map.json        ← audit trail of what Claude extracted
 └── artifacts/
-    └── Snowflake-Business-Plan-2026-05-07.pptx
+    └── Acme-Business-Plan-2026-05-07.pptx
 ```
 
 ### Slides auto-populated
@@ -114,13 +114,13 @@ pip install -r requirements.txt
 ### Basic — full research + PPT
 
 ```bash
-/sales plan https://www.snowflake.com
+/sales plan https://www.acme-corp.example
 ```
 
 ### With deal context — pre-fills Slides 4 and 8
 
 ```bash
-/sales plan https://www.snowflake.com \
+/sales plan https://www.acme-corp.example \
   --arr=150000 \
   --renewal=Q3 \
   --stage=POC \
@@ -132,7 +132,7 @@ pip install -r requirements.txt
 
 | Argument | Description | Example |
 |----------|-------------|---------|
-| `<url>` | Company website (required) | `https://www.snowflake.com` |
+| `<url>` | Company website (required) | `https://www.acme-corp.example` |
 | `--arr=<amount>` | Current or target ARR in dollars | `--arr=150000` |
 | `--renewal=<quarter>` | Renewal quarter | `--renewal=Q3` or `--renewal="Q3 FY26"` |
 | `--stage=<stage>` | Deal stage | `--stage=POC` |
@@ -146,7 +146,7 @@ pip install -r requirements.txt
 Running `/sales plan` on an account that already has a deal folder is safe:
 
 - Research files in `content/` are overwritten with fresh data
-- The existing PPT in `artifacts/` is **renamed with a timestamp** (e.g., `Snowflake-Business-Plan-2026-05-07_1430.pptx`) before the new one is written — you never lose a prior version
+- The existing PPT in `artifacts/` is **renamed with a timestamp** (e.g., `Acme-Business-Plan-2026-05-07_1430.pptx`) before the new one is written — you never lose a prior version
 - `deal.yaml` and `brief.md` in the folder root are **never overwritten**
 
 To re-run only the PPT step (after manually editing a markdown file):
@@ -236,6 +236,14 @@ Your deal folders and generated PPTs are untouched.
 
 ---
 
-## License
+## License & disclaimer
 
-MIT
+MIT (see `LICENSE`).
+
+Not affiliated with, endorsed by, or supported by Adobe or Microsoft; "Adobe", "PowerPoint",
+and product names are trademarks of their respective owners, and the "Lite DX Business Plan"
+template is not included — bring your own. Example company names, URLs, and figures in this
+README are **fictional and illustrative**; they do not represent real accounts, deals, or
+pipeline. This tool generates internal sales artifacts from research you run — you are
+responsible for handling any customer or pipeline data it touches under **your organization's
+data-handling and confidentiality policies**. No warranty, no SLA; a published snapshot.
